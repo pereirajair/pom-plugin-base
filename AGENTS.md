@@ -3,6 +3,7 @@
 - The host ABI entry point and embedded asset interface live in `src/lib.rs`.
 - The host menu and route contract is `ui/manifest.json`; screen exports are in `ui/src/screens/index.tsx`.
 - `scripts/build-ui.sh` generates ignored files under `ui/dist/` before native packaging.
+- The manual release workflow and its optional license-server publication are defined in `.github/workflows/publish-release.yml` and documented in `README.md`.
 - Use `cargo test` and `cargo fmt --check` for the Rust and static contract checks.
 
 ## Maintaining this file

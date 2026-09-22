@@ -145,7 +145,10 @@ fn generic_build_and_project_files_are_present() {
         "build.rs",
         "scripts/build.sh",
         "scripts/build-ui.sh",
+        "scripts/ci-plan.sh",
         "scripts/package.sh",
+        "scripts/publish-to-license-server.sh",
+        ".github/workflows/publish-release.yml",
     ] {
         assert!(root().join(path).is_file(), "missing {path}");
     }
