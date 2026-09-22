@@ -1,0 +1,31 @@
+{
+  "schema": "pom-plugin-ui/v1",
+  "plugin_code": "base",
+  "menu": [
+    {
+      "id": "base",
+      "label": { "en": "Base Plugin", "pt-BR": "Plugin de Base" },
+      "icon": "layout-template",
+      "to": "/plugin-de-base"
+    },
+    {
+      "id": "example",
+      "label": { "en": "Example", "pt-BR": "Exemplo" },
+      "icon": "file-code-2",
+      "to": "/example"
+    }
+  ],
+  "routes": [
+    { "path": "/plugin-de-base", "screen": "base", "full_bleed": true },
+    { "path": "/example", "screen": "example", "full_bleed": true }
+  ],
+  "screens": {
+    "base": { "module": "ui/screens.js", "export": "base", "styles": ["ui/plugin.css"] },
+    "example": { "module": "ui/screens.js", "export": "example", "styles": ["ui/plugin.css"] }
+  },
+  "i18n": {
+    "en": "i18n/en.json",
+    "pt-BR": "i18n/pt-BR.json"
+  },
+  "assets": ["ui/screens.js", "ui/plugin.css", "i18n/en.json", "i18n/pt-BR.json"]
+}
