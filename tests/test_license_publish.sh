@@ -71,7 +71,7 @@ assert_contains "$curl_args" 'version=0.1.0'
 assert_contains "$curl_args" 'os=linux'
 assert_contains "$curl_args" 'arch=x86_64'
 assert_contains "$curl_args" 'plugin_abi=1'
-assert_contains "$curl_args" 'feature_set='
+assert_contains "$curl_args" 'feature_set=base'
 assert_contains "$curl_args" 'internal/releases/upload'
 
 : > "$curl_log"

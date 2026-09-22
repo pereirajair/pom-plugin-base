@@ -47,7 +47,7 @@ Both build commands accept `--output <dir>`. By default, artifacts go to `dist-r
 
 The manual `Publish plugin release` workflow builds selected platforms, attaches the packages and metadata to GitHub releases, and publishes stable releases to the license server. Prereleases go to GitHub only. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release.
 
-Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
+Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. The upload protocol requires a non-empty feature set, so this generic scaffold sends the identifier `base`. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
 
 The workflow and its plan/publish helpers are in `.github/workflows/publish-release.yml` and `scripts/`.
 

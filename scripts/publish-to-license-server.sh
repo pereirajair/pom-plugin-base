@@ -106,6 +106,7 @@ response_detail() {
   head -c 2048 "$response_file" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g'
 }
 
+# The upload protocol requires at least one feature identifier.
 if http_status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
   -H "Authorization: Bearer ${POM_RELEASE_TOKEN}" \
   -F 'plugin=base' \
@@ -115,7 +116,7 @@ if http_status="$(curl --silent --show-error --output "$response_file" --write-o
   -F 'plugin_abi=1' \
   -F "min_host_version=${min_host_version}" \
   -F "channel=${channel}" \
-  -F 'feature_set=' \
+  -F 'feature_set=base' \
   -F "reason=${reason}" \
   -F "artifact=@${artifact}" \
   "$upload_url")"; then
