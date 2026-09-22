@@ -29,6 +29,10 @@ done
 
 [[ -n "$platform" ]] || die '--platform is required'
 [[ -n "$version" ]] || die '--version is required'
+command -v jq >/dev/null 2>&1 || die 'jq is required'
+
+plugin_code="$(jq -er '.plugin_code | strings' "$root/ui/manifest.json")" || die 'manifest has no plugin code'
+[[ "$plugin_code" =~ ^[a-z][a-z0-9_]{1,63}$ ]] || die 'manifest plugin code is invalid'
 
 build_output="$("$root/scripts/build.sh" --platform "$platform" --output "$output")"
 artifact="$(printf '%s\n' "$build_output" | sed -n 's/^artifact=//p')"
@@ -39,7 +43,7 @@ target="$(printf '%s\n' "$build_output" | sed -n 's/^target=//p')"
 metadata="${output}/pom-plugin-base-${platform}.metadata.json"
 cat > "$metadata" <<JSON
 {
-  "plugin_code": "base",
+  "plugin_code": "${plugin_code}",
   "version": "${version}",
   "platform": "${platform}",
   "target": "${target}",

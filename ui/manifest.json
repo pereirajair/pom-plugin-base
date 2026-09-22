@@ -16,7 +16,7 @@
     }
   ],
   "routes": [
-    { "path": "/plugin-de-base", "screen": "base", "full_bleed": true },
+    { "path": "/plugin-de-base", "screen": "base", "full_bleed": true, "roles": ["admin"] },
     { "path": "/example", "screen": "example", "full_bleed": true }
   ],
   "screens": {

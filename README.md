@@ -17,7 +17,9 @@ i18n/                    en and pt-BR catalogs
 scripts/                 UI, native build, and package commands
 ```
 
-The manifest sets `plugin_code` to `base`. Its menu entries point to routes declared in the same file, so the host can add both screens without a host-side menu change. The exported C entry point is `pom_base_plugin_v1`.
+The manifest sets `plugin_code` to `base`. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`.
+
+Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it. The license publisher derives the release plugin name from the same manifest and sends the generic feature identifier `<plugin_code>.core`.
 
 ## Build and verify
 
@@ -47,7 +49,7 @@ Both build commands accept `--output <dir>`. By default, artifacts go to `dist-r
 
 The manual `Publish plugin release` workflow builds selected platforms, attaches the packages and metadata to GitHub releases, and publishes stable releases to the license server. Prereleases go to GitHub only. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release.
 
-Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. The upload protocol requires a non-empty feature set, so this generic scaffold sends the identifier `base`. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
+Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. The upload protocol requires a non-empty namespaced feature set, so this generic scaffold sends `base.core`. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
 
 The workflow and its plan/publish helpers are in `.github/workflows/publish-release.yml` and `scripts/`.
 

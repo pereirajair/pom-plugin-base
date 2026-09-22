@@ -18,7 +18,7 @@ fn main() {
 
     for (directory, prefix, extensions) in [
         ("ui/dist", "ui", &["js", "css"][..]),
-        ("i18n", "i18n", &["json"][..]),
+        ("ui/dist/i18n", "i18n", &["json"][..]),
     ] {
         println!("cargo:rerun-if-changed={directory}");
         let Ok(files) = fs::read_dir(Path::new(&root).join(directory)) else {
@@ -51,4 +51,5 @@ fn main() {
     let output = Path::new(&env::var("OUT_DIR").expect("output directory")).join("ui_assets.rs");
     fs::write(output, generated).expect("write embedded asset index");
     println!("cargo:rerun-if-changed=ui/manifest.json");
+    println!("cargo:rerun-if-changed=i18n");
 }

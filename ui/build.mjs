@@ -1,8 +1,15 @@
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const require = createRequire(import.meta.url);
+const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
+const pluginCode = manifest.plugin_code;
+if (typeof pluginCode !== "string" || !/^[a-z][a-z0-9_]{1,63}$/.test(pluginCode)) {
+  throw new Error("manifest plugin_code must be a valid plugin identifier");
+}
+
 const hostModules = {
   react: "React",
   "react-dom": "ReactDOM",
@@ -18,6 +25,16 @@ function hostModule(specifier, property) {
     "export default module;",
     ...names.map((name) => `export const ${name} = module.${name};`),
   ].join("\n");
+}
+
+function namespacePluginCode(source) {
+  return source.replaceAll("pb-", `${pluginCode}-`);
+}
+
+function namespaceLocaleCatalog(catalog) {
+  return Object.fromEntries(
+    Object.entries(catalog).map(([key, value]) => [`${pluginCode}.${key}`, value]),
+  );
 }
 
 const hostPlugin = {
@@ -45,9 +62,23 @@ await build({
   minify: true,
   jsx: "automatic",
   loader: { ".css": "empty" },
-  define: { "process.env.NODE_ENV": '"production"' },
+  define: {
+    "process.env.NODE_ENV": '"production"',
+    __POM_PLUGIN_CODE__: JSON.stringify(pluginCode),
+  },
   plugins: [hostPlugin],
   logLevel: "info",
 });
-writeFileSync("dist/plugin.css", readFileSync("src/plugin.css", "utf8"));
-console.log("dist/plugin.css", readFileSync("dist/plugin.css", "utf8").length, "bytes");
+const screensPath = "dist/screens.js";
+writeFileSync(screensPath, namespacePluginCode(readFileSync(screensPath, "utf8")));
+
+const css = namespacePluginCode(readFileSync("src/plugin.css", "utf8"));
+writeFileSync("dist/plugin.css", css);
+mkdirSync("dist/i18n", { recursive: true });
+for (const [locale, catalogPath] of Object.entries(manifest.i18n)) {
+  const catalog = JSON.parse(readFileSync(join("..", catalogPath), "utf8"));
+  const namespacedCatalog = namespaceLocaleCatalog(catalog);
+  writeFileSync(`dist/i18n/${locale}.json`, `${JSON.stringify(namespacedCatalog, null, 2)}\n`);
+}
+
+console.log("dist/plugin.css", css.length, "bytes");

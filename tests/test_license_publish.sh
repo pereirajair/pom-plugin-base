@@ -63,7 +63,7 @@ output="$(
   "$root/scripts/publish-to-license-server.sh" \
     --version v0.1.0 --platform linux-x86_64 --artifact "$artifact" --metadata "$metadata"
 )"
-assert_contains "$output" 'release_id=base-v0.1.0-linux-x86_64'
+assert_contains "$output" 'release_id=base-0.1.0-linux-x86_64'
 assert_contains "$output" 'status=published'
 curl_args="$(cat "$curl_log")"
 assert_contains "$curl_args" 'plugin=base'
@@ -71,7 +71,7 @@ assert_contains "$curl_args" 'version=0.1.0'
 assert_contains "$curl_args" 'os=linux'
 assert_contains "$curl_args" 'arch=x86_64'
 assert_contains "$curl_args" 'plugin_abi=1'
-assert_contains "$curl_args" 'feature_set=base'
+assert_contains "$curl_args" 'feature_set=base.core'
 assert_contains "$curl_args" 'internal/releases/upload'
 
 : > "$curl_log"
@@ -96,5 +96,51 @@ if PATH="$tmp_dir/bin:$PATH" POM_TEST_CURL_LOG="$curl_log" POM_RELEASE_TOKEN='te
 fi
 assert_contains "$(cat "$tmp_dir/error.txt")" 'sha256 mismatch'
 [[ ! -s "$curl_log" ]] || fail 'invalid artifact was uploaded'
+
+renamed_root="$tmp_dir/renamed"
+mkdir -p "$renamed_root/scripts" "$renamed_root/ui"
+cp "$root/scripts/package.sh" "$renamed_root/scripts/package.sh"
+cp "$root/scripts/publish-to-license-server.sh" "$renamed_root/scripts/publish-to-license-server.sh"
+sed 's/"plugin_code": "base"/"plugin_code": "my_plugin"/' "$root/ui/manifest.json" > "$renamed_root/ui/manifest.json"
+cat > "$renamed_root/scripts/build.sh" <<'FAKE_BUILD'
+#!/usr/bin/env bash
+set -euo pipefail
+output="$PWD/dist-release"
+while (($# > 0)); do
+  case "$1" in
+    --platform) platform="$2"; shift 2 ;;
+    --output) output="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+mkdir -p "$output"
+artifact="$output/pom-plugin-base-${platform}.so"
+printf '%s' 'renamed plugin bytes' > "$artifact"
+sha256="$(shasum -a 256 "$artifact" | awk '{print $1}')"
+size="$(wc -c < "$artifact" | tr -d '[:space:]')"
+printf 'artifact=%s\nsha256=%s\nsize=%s\nplatform=%s\ntarget=x86_64-unknown-linux-gnu\n' \
+  "$artifact" "$sha256" "$size" "$platform"
+FAKE_BUILD
+chmod +x "$renamed_root/scripts/build.sh"
+
+renamed_output="$tmp_dir/renamed-dist"
+renamed_package_output="$("$renamed_root/scripts/package.sh" --platform linux-x86_64 --version 0.0.3 --output "$renamed_output")"
+renamed_artifact="$(printf '%s\n' "$renamed_package_output" | sed -n 's/^artifact=//p')"
+renamed_metadata="$(printf '%s\n' "$renamed_package_output" | sed -n 's/^metadata=//p')"
+[[ "$(jq -r '.plugin_code' "$renamed_metadata")" == my_plugin ]] || fail 'package did not derive plugin code from manifest'
+
+: > "$curl_log"
+renamed_publish_output="$(
+  PATH="$tmp_dir/bin:$PATH" \
+  POM_TEST_CURL_LOG="$curl_log" \
+  POM_RELEASE_API='https://license.test' \
+  POM_RELEASE_TOKEN='test-token' \
+  "$renamed_root/scripts/publish-to-license-server.sh" \
+    --version v0.0.3 --platform linux-x86_64 --artifact "$renamed_artifact" --metadata "$renamed_metadata"
+)"
+assert_contains "$renamed_publish_output" 'release_id=my_plugin-0.0.3-linux-x86_64'
+renamed_curl_args="$(cat "$curl_log")"
+assert_contains "$renamed_curl_args" 'plugin=my_plugin'
+assert_contains "$renamed_curl_args" 'feature_set=my_plugin.core'
 
 printf 'test_license_publish: ok\n'

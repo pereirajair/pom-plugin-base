@@ -8,7 +8,7 @@ artifact=""
 metadata=""
 min_host_version="0.1.0"
 channel="stable"
-reason="release base plugin"
+reason=""
 dry_run=false
 
 usage() {
@@ -59,12 +59,15 @@ esac
 
 expected_version="${version#v}"
 metadata_code="$(jq -er '.plugin_code | strings' "$metadata")" || die 'metadata has no plugin code'
+manifest_code="$(jq -er '.plugin_code | strings' "$root/ui/manifest.json")" || die 'manifest has no plugin code'
 metadata_version="$(jq -er '.version | strings' "$metadata")" || die 'metadata has no version'
 metadata_platform="$(jq -er '.platform | strings' "$metadata")" || die 'metadata has no platform'
 metadata_abi="$(jq -er '.plugin_abi | numbers' "$metadata")" || die 'metadata has no ABI version'
 expected_sha256="$(jq -er '.sha256 | strings' "$metadata")" || die 'metadata has no SHA-256'
 expected_size="$(jq -er '.size | numbers' "$metadata")" || die 'metadata has no size'
-[[ "$metadata_code" == base ]] || die 'metadata plugin code does not match this package'
+[[ "$manifest_code" =~ ^[a-z][a-z0-9_]{1,63}$ ]] || die 'manifest plugin code is invalid'
+[[ "$metadata_code" == "$manifest_code" ]] || die 'metadata plugin code does not match the manifest'
+reason="${reason:-release ${manifest_code} plugin}"
 [[ "$metadata_version" == "$expected_version" ]] || die 'metadata version does not match the release tag'
 [[ "$metadata_platform" == "$platform" ]] || die 'metadata platform does not match the selected platform'
 [[ "$metadata_abi" == 1 ]] || die 'metadata ABI version is not supported'
@@ -85,7 +88,7 @@ fi
 actual_size="$(wc -c < "$artifact" | tr -d '[:space:]')"
 [[ "$actual_size" == "$expected_size" ]] || die "size mismatch: metadata says ${expected_size}, package is ${actual_size} bytes"
 
-release_id="base-${version}-${os}-${arch}"
+release_id="${manifest_code}-${expected_version}-${os}-${arch}"
 if [[ "$dry_run" == true ]]; then
   printf 'release_id=%s\nstatus=dry-run\nsha256=%s\nsize=%s\nartifact=%s\n' \
     "$release_id" "$actual_sha256" "$actual_size" "$artifact"
@@ -109,14 +112,14 @@ response_detail() {
 # The upload protocol requires at least one feature identifier.
 if http_status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
   -H "Authorization: Bearer ${POM_RELEASE_TOKEN}" \
-  -F 'plugin=base' \
+  -F "plugin=${manifest_code}" \
   -F "version=${expected_version}" \
   -F "os=${os}" \
   -F "arch=${arch}" \
   -F 'plugin_abi=1' \
   -F "min_host_version=${min_host_version}" \
   -F "channel=${channel}" \
-  -F 'feature_set=base' \
+  -F "feature_set=${manifest_code}.core" \
   -F "reason=${reason}" \
   -F "artifact=@${artifact}" \
   "$upload_url")"; then

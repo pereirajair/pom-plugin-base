@@ -63,6 +63,9 @@ fn manifest_registers_both_full_bleed_screens() {
             .expect("route");
         assert_eq!(route["screen"], screen);
         assert_eq!(route["full_bleed"], true);
+        if path == "/plugin-de-base" {
+            assert_eq!(route["roles"], serde_json::json!(["admin"]));
+        }
         let descriptor = &manifest["screens"][screen];
         assert_eq!(descriptor["module"], "ui/screens.js");
         assert_eq!(descriptor["export"], screen);
@@ -127,6 +130,56 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
     assert_eq!(example.matches("t(\"example.body\")").count(), 1);
     assert_eq!(example.matches("<p").count(), 1);
     assert!(!example.contains("<h1") && !example.contains("<h2"));
+}
+
+#[test]
+fn i18n_namespace_comes_from_manifest_plugin_code() {
+    let manifest = json("ui/manifest.json");
+    let plugin_code = manifest["plugin_code"].as_str().expect("plugin code");
+    let en = json("i18n/en.json");
+    let pt = json("i18n/pt-BR.json");
+    let english_keys = en.as_object().expect("English catalog");
+    let portuguese_keys = pt.as_object().expect("Portuguese catalog");
+
+    assert!(english_keys.contains_key("title"));
+    assert!(english_keys.contains_key("example.body"));
+    assert!(!english_keys.keys().any(|key| key.starts_with("base.")));
+    assert_eq!(
+        english_keys.keys().collect::<Vec<_>>(),
+        portuguese_keys.keys().collect::<Vec<_>>()
+    );
+
+    let runtime = text("ui/src/host/runtime.ts");
+    assert!(runtime.contains("${pluginCode}.${key}"));
+    let build = text("ui/build.mjs");
+    assert!(build.contains("manifest.plugin_code"));
+    assert!(build.contains("namespaceLocaleCatalog"));
+
+    let renamed_code = "my_plugin";
+    let derived_keys: BTreeSet<_> = english_keys
+        .keys()
+        .map(|key| format!("{renamed_code}.{key}"))
+        .collect();
+    assert!(derived_keys.contains("my_plugin.title"));
+    assert!(derived_keys.contains("my_plugin.example.body"));
+
+    let generated = root().join("ui/dist/i18n/en.json");
+    if generated.exists() {
+        let generated: Value = serde_json::from_slice(&fs::read(generated).unwrap()).unwrap();
+        assert!(generated.get(format!("{plugin_code}.title")).is_some());
+        assert!(generated
+            .get(format!("{plugin_code}.example.body"))
+            .is_some());
+    }
+}
+
+#[test]
+fn plugin_styles_do_not_write_global_rules_and_get_plugin_scoped_names() {
+    let css = text("ui/src/plugin.css");
+    assert!(!css.contains(":root"));
+    let build = text("ui/build.mjs");
+    assert!(build.contains("namespacePluginCode"));
+    assert!(build.contains("pluginCode"));
 }
 
 #[test]
@@ -214,7 +267,7 @@ fn repository_text_avoids_unrelated_product_terms() {
 fn example_screen_is_a_minimal_lorem_template() {
     let source = text("ui/src/screens/Example.tsx");
     assert!(source.contains("export function Example"));
-    assert!(source.contains("useI18n"));
+    assert!(source.contains("usePluginI18n"));
     assert!(source.contains("t(\"example.body\")"));
     assert_eq!(source.matches("<main").count(), 1);
     assert_eq!(source.matches("<p").count(), 1);
