@@ -25,6 +25,24 @@ cat > "$tmp_dir/bin/curl" <<'FAKE_CURL'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$@" >> "$POM_TEST_CURL_LOG"
+response_file=""
+fail_on_http=false
+while (($# > 0)); do
+  case "$1" in
+    --output) response_file="$2"; shift 2 ;;
+    --fail) fail_on_http=true; shift ;;
+    *) shift ;;
+  esac
+done
+status="${POM_TEST_HTTP_STATUS:-200}"
+if [[ -n "$response_file" && "$status" != 200 ]]; then
+  printf '%s' 'plugin code is not registered' > "$response_file"
+fi
+if [[ "$fail_on_http" == true && "$status" =~ ^[45][0-9][0-9]$ ]]; then
+  printf 'curl: (22) The requested URL returned error: %s\n' "$status" >&2
+  exit 22
+fi
+printf '%s' "$status"
 FAKE_CURL
 chmod +x "$tmp_dir/bin/curl"
 
@@ -55,6 +73,17 @@ assert_contains "$curl_args" 'arch=x86_64'
 assert_contains "$curl_args" 'plugin_abi=1'
 assert_contains "$curl_args" 'feature_set='
 assert_contains "$curl_args" 'internal/releases/upload'
+
+: > "$curl_log"
+if PATH="$tmp_dir/bin:$PATH" POM_TEST_CURL_LOG="$curl_log" POM_TEST_HTTP_STATUS=400 \
+  POM_RELEASE_API='https://license.test' POM_RELEASE_TOKEN='test-token' \
+  "$root/scripts/publish-to-license-server.sh" \
+    --version v0.1.0 --platform linux-x86_64 --artifact "$artifact" --metadata "$metadata" \
+    >"$tmp_dir/http-output.txt" 2>"$tmp_dir/http-error.txt"; then
+  fail 'HTTP 400 should fail the publication'
+fi
+assert_contains "$(cat "$tmp_dir/http-error.txt")" 'HTTP 400'
+assert_contains "$(cat "$tmp_dir/http-error.txt")" 'plugin code is not registered'
 
 cat > "$metadata" <<JSON
 {"plugin_code":"base","version":"0.1.0","platform":"linux-x86_64","plugin_abi":1,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":$size}

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 version=""
 platform=""
 artifact=""
@@ -97,7 +98,15 @@ POM_RELEASE_API="${POM_RELEASE_API:-https://admin-license.pieceofmind.cloud}"
 upload_url="${POM_RELEASE_API%/}"
 [[ "$upload_url" == */internal/releases/upload ]] || upload_url="${upload_url}/internal/releases/upload"
 
-curl --fail --silent --show-error \
+mkdir -p "$root/target"
+response_file="$(mktemp "$root/target/license-publish-response.XXXXXX")"
+trap 'rm -f "$response_file"' EXIT
+
+response_detail() {
+  head -c 2048 "$response_file" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g'
+}
+
+if http_status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
   -H "Authorization: Bearer ${POM_RELEASE_TOKEN}" \
   -F 'plugin=base' \
   -F "version=${expected_version}" \
@@ -109,7 +118,20 @@ curl --fail --silent --show-error \
   -F 'feature_set=' \
   -F "reason=${reason}" \
   -F "artifact=@${artifact}" \
-  "$upload_url" >/dev/null
+  "$upload_url")"; then
+  :
+else
+  curl_status=$?
+  detail="$(response_detail)"
+  [[ -n "$detail" ]] && die "upload request failed (curl exit ${curl_status}): ${detail}"
+  die "upload request failed (curl exit ${curl_status})"
+fi
+
+if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+  detail="$(response_detail)"
+  [[ -n "$detail" ]] && die "server returned HTTP ${http_status}: ${detail}"
+  die "server returned HTTP ${http_status} without an error response body"
+fi
 
 printf 'release_id=%s\nstatus=published\nsha256=%s\nsize=%s\n' \
   "$release_id" "$actual_sha256" "$actual_size"
