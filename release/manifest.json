@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "plugin_code": "base",
+  "plugin_abi": 1,
+  "feature_set": ["base.core"],
+  "preferences": {
+    "features": [
+      {
+        "key": "example_feature_enabled",
+        "label": "Example feature",
+        "default": false,
+        "description": "An example boolean preference for plugin authors."
+      }
+    ],
+    "storage_directory": {
+      "label": "Plugin data directory",
+      "default": null
+    }
+  }
+}

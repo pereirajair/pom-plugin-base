@@ -183,6 +183,33 @@ fn plugin_styles_do_not_write_global_rules_and_get_plugin_scoped_names() {
 }
 
 #[test]
+fn release_manifest_provides_typed_default_preference_examples() {
+    let manifest = json("release/manifest.json");
+    assert_eq!(manifest["schema"], 1);
+    assert_eq!(manifest["plugin_code"], "base");
+    assert_eq!(manifest["feature_set"], serde_json::json!(["base.core"]));
+
+    let preferences = &manifest["preferences"];
+    let features = preferences["features"]
+        .as_array()
+        .expect("boolean preferences");
+    assert_eq!(features.len(), 1);
+    assert_eq!(features[0]["key"], "example_feature_enabled");
+    assert_eq!(features[0]["default"], false);
+    assert_eq!(
+        preferences["storage_directory"]["label"],
+        "Plugin data directory"
+    );
+    assert!(preferences["storage_directory"]["default"].is_null());
+
+    let package = text("scripts/package.sh");
+    assert!(package.contains("pom-plugin-${platform}.json"));
+    assert!(package.contains(".preferences"));
+    let publisher = text("scripts/publish-to-license-server.sh");
+    assert!(publisher.contains("-F \"preferences=${preferences}\""));
+}
+
+#[test]
 fn generic_build_and_project_files_are_present() {
     let cargo = text("Cargo.toml");
     assert!(cargo.contains("name = \"pom-plugin-base\""));
@@ -201,6 +228,7 @@ fn generic_build_and_project_files_are_present() {
         "scripts/ci-plan.sh",
         "scripts/package.sh",
         "scripts/publish-to-license-server.sh",
+        "release/manifest.json",
         ".github/workflows/publish-release.yml",
     ] {
         assert!(root().join(path).is_file(), "missing {path}");

@@ -17,7 +17,7 @@ i18n/                    en and pt-BR catalogs
 scripts/                 UI, native build, and package commands
 ```
 
-The manifest sets `plugin_code` to `base`. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`.
+The UI manifest sets `plugin_code` to `base`. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
 
 Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it. The license publisher derives the release plugin name from the same manifest and sends the generic feature identifier `<plugin_code>.core`.
 
@@ -47,7 +47,7 @@ Both build commands accept `--output <dir>`. By default, artifacts go to `dist-r
 
 ## GitHub release workflow
 
-The manual `Publish plugin release` workflow builds selected platforms, attaches the packages and metadata to GitHub releases, and publishes stable releases to the license server. Prereleases go to GitHub only. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release.
+The manual `Publish plugin release` workflow builds selected platforms, attaches the packages and metadata to GitHub releases, and publishes stable releases to the license server. Prereleases go to GitHub only. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release. Each platform package also generates `pom-plugin-<os>-<arch>.json`, the public GitHub update manifest consumed by POM. Its SHA-256 and byte size describe the adjacent native asset; keep both assets attached to the release. The packaging metadata carries the typed `preferences` schema through the license publisher, while the preference values themselves are always stored by POM locally and are not license data.
 
 Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. The upload protocol requires a non-empty namespaced feature set, so this generic scaffold sends `base.core`. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
 

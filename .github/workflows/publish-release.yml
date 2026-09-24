@@ -93,6 +93,7 @@ jobs:
           path: |
             dist-release/pom-plugin-base-${{ matrix.platform }}.${{ matrix.ext }}
             dist-release/pom-plugin-base-${{ matrix.platform }}.metadata.json
+            dist-release/pom-plugin-${{ matrix.platform }}.json
           if-no-files-found: error
 
   release:

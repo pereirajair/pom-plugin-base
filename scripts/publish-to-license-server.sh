@@ -63,6 +63,12 @@ manifest_code="$(jq -er '.plugin_code | strings' "$root/ui/manifest.json")" || d
 metadata_version="$(jq -er '.version | strings' "$metadata")" || die 'metadata has no version'
 metadata_platform="$(jq -er '.platform | strings' "$metadata")" || die 'metadata has no platform'
 metadata_abi="$(jq -er '.plugin_abi | numbers' "$metadata")" || die 'metadata has no ABI version'
+preferences="$(jq -cer '.preferences | objects' "$metadata")" || die 'metadata has no typed preferences schema'
+jq -e '
+  (.features | arrays) and
+  all(.features[]; (.key | strings | test("^[a-z][a-z0-9_]{0,63}$")) and (.label | strings | length > 0) and (.default | type == "boolean")) and
+  ((.storage_directory == null) or ((.storage_directory | type) == "object" and (.storage_directory.label | strings | length > 0)))
+' <<< "$preferences" >/dev/null || die 'metadata preferences schema is invalid'
 expected_sha256="$(jq -er '.sha256 | strings' "$metadata")" || die 'metadata has no SHA-256'
 expected_size="$(jq -er '.size | numbers' "$metadata")" || die 'metadata has no size'
 [[ "$manifest_code" =~ ^[a-z][a-z0-9_]{1,63}$ ]] || die 'manifest plugin code is invalid'
@@ -120,6 +126,7 @@ if http_status="$(curl --silent --show-error --output "$response_file" --write-o
   -F "min_host_version=${min_host_version}" \
   -F "channel=${channel}" \
   -F "feature_set=${manifest_code}.core" \
+  -F "preferences=${preferences}" \
   -F "reason=${reason}" \
   -F "artifact=@${artifact}" \
   "$upload_url")"; then
