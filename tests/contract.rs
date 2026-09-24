@@ -204,6 +204,11 @@ fn release_manifest_provides_typed_default_preference_examples() {
 
     let package = text("scripts/package.sh");
     assert!(package.contains("pom-plugin-${platform}.json"));
+    assert!(
+        package.contains("($contract[0]) + {"),
+        "the public manifest retains schema: 1"
+    );
+    assert!(!package.contains("del(.schema)"));
     assert!(package.contains(".preferences"));
     let publisher = text("scripts/publish-to-license-server.sh");
     assert!(publisher.contains("-F \"preferences=${preferences}\""));

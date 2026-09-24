@@ -77,7 +77,7 @@ jq -n \
   --arg asset "$(basename "$artifact")" \
   --arg sha256 "$sha256" \
   --argjson size "$size" \
-  '($contract[0] | del(.schema)) + {
+  '($contract[0]) + {
     release_id: $release_id,
     version: $version,
     os: $os,
