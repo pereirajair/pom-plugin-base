@@ -2,7 +2,7 @@
 
 A small public starter for building plugins for the POM. It shows the host ABI boundary, automatic menu registration through `pom-plugin-ui/v1`, embedded React screens, locale catalogs, and repeatable build and packaging commands.
 
-The included **Plugin de Base** screen describes the scaffold. The **Example** screen contains only Lorem ipsum and is intended as the smallest screen to copy when starting a new view.
+The included **Plugin de Base** screen describes the scaffold. The **Example** screen demonstrates the shared workspace project list and is intended as a small screen to copy when starting a new view.
 
 ## Project layout
 
@@ -13,11 +13,13 @@ build.rs                Embeds built UI files and locale catalogs
 ui/manifest.json        Menu, route, screen, locale, and asset declarations
 ui/src/screens/          React screen components
 ui/src/plugin.css        Screen styles
+ui/icon.png              Optional plugin-owned menu image
+docs/                    Guides shown in plugin documentation
 i18n/                    en and pt-BR catalogs
 scripts/                 UI, native build, and package commands
 ```
 
-The UI manifest sets `plugin_code` to `base`. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
+The UI manifest sets `plugin_code` to `base`, registers `ui/icon.png` as the optional plugin-owned menu image, and lists the Markdown files under `docs/` for the POM documentation view. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
 
 Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it. The license publisher derives the release plugin name from the same manifest and sends the generic feature identifier `<plugin_code>.core`.
 
@@ -79,9 +81,9 @@ projects is empty; neither condition prevents the plugin from loading.
 ## Start a plugin
 
 1. Update the package name, plugin code, and exported entry point for the new plugin.
-2. Add or adjust its menu item, route, screen export, and UI assets in `ui/manifest.json`.
+2. Add or adjust its menu item, route, screen export, icon image, and documentation paths in `ui/manifest.json`.
 3. Implement plugin behavior behind the versioned ABI in `src/lib.rs`.
-4. Add screen components under `ui/src/screens/` and keep the `en` and `pt-BR` catalogs aligned.
+4. Add screen components under `ui/src/screens/`, guides under `docs/`, and keep the `en` and `pt-BR` catalogs aligned.
 5. Run the verification and build commands above before packaging.
 
-The UI bundle is generated under `ui/dist/` and embedded into the native library during the Rust build. Do not commit that generated directory.
+The UI bundle is generated under `ui/dist/`; the bundle, PNG icon, and Markdown guides are embedded into the native library during the Rust build. Do not commit the generated directory.

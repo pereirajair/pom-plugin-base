@@ -36,6 +36,15 @@ fn manifest_registers_both_full_bleed_screens() {
     let manifest = json("ui/manifest.json");
     assert_eq!(manifest["schema"], "pom-plugin-ui/v1");
     assert_eq!(manifest["plugin_code"], "base");
+    assert_eq!(manifest["icon_image"], "ui/icon.png");
+    assert_eq!(
+        manifest["documentation"],
+        serde_json::json!([
+            "docs/README.md",
+            "docs/guia-desenvolvimento.md",
+            "docs/guia-workspace.md"
+        ])
+    );
 
     let menu = manifest["menu"].as_array().expect("menu array");
     assert_eq!(menu.len(), 2);
@@ -94,12 +103,25 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
         BTreeSet::from([
             "ui/screens.js",
             "ui/plugin.css",
+            "ui/icon.png",
             "i18n/en.json",
             "i18n/pt-BR.json",
+            "docs/README.md",
+            "docs/guia-desenvolvimento.md",
+            "docs/guia-workspace.md",
         ])
     );
     assert!(root().join("ui/src/screens/index.tsx").is_file());
     assert!(root().join("ui/src/plugin.css").is_file());
+    let icon = fs::read(root().join("ui/icon.png")).expect("plugin icon");
+    assert!(icon.starts_with(b"\x89PNG\r\n\x1a\n"));
+    for path in [
+        "docs/README.md",
+        "docs/guia-desenvolvimento.md",
+        "docs/guia-workspace.md",
+    ] {
+        assert!(root().join(path).is_file(), "missing {path}");
+    }
     let screen_index = text("ui/src/screens/index.tsx");
     assert!(screen_index.contains("BasePlugin as base"));
     assert!(screen_index.contains("Example as example"));
@@ -186,6 +208,9 @@ fn plugin_styles_do_not_write_global_rules_and_get_plugin_scoped_names() {
     let build = text("ui/build.mjs");
     assert!(build.contains("namespacePluginCode"));
     assert!(build.contains("pluginCode"));
+    let native_build = text("build.rs");
+    assert!(native_build.contains("image/png"));
+    assert!(native_build.contains("text/markdown"));
 }
 
 #[test]

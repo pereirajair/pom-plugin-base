@@ -1,6 +1,12 @@
 {
   "schema": "pom-plugin-ui/v1",
   "plugin_code": "base",
+  "icon_image": "ui/icon.png",
+  "documentation": [
+    "docs/README.md",
+    "docs/guia-desenvolvimento.md",
+    "docs/guia-workspace.md"
+  ],
   "menu": [
     {
       "id": "base",
@@ -27,5 +33,14 @@
     "en": "i18n/en.json",
     "pt-BR": "i18n/pt-BR.json"
   },
-  "assets": ["ui/screens.js", "ui/plugin.css", "i18n/en.json", "i18n/pt-BR.json"]
+  "assets": [
+    "ui/screens.js",
+    "ui/plugin.css",
+    "ui/icon.png",
+    "i18n/en.json",
+    "i18n/pt-BR.json",
+    "docs/README.md",
+    "docs/guia-desenvolvimento.md",
+    "docs/guia-workspace.md"
+  ]
 }
