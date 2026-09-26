@@ -53,6 +53,29 @@ Before running a stable release, configure the repository secret `POM_RELEASE_TO
 
 The workflow and its plan/publish helpers are in `.github/workflows/publish-release.yml` and `scripts/`.
 
+## Shared workspace contract
+
+The POM owns the user's shared project folder and passes it to an active plugin
+through the optional top-level `workspace_root` field of `host.configure`:
+
+```json
+{
+  "operation": "host.configure",
+  "workspace_root": "/path/to/projects"
+}
+```
+
+This base plugin does not ask the user to choose a folder and does not derive a
+fallback root. It keeps the received value in memory, exposes a loopback
+`ui.upstream` endpoint to the POM, and serves `GET /projects` through the
+authenticated plugin proxy. The endpoint reads only immediate child
+directories, sorts their names, and omits hidden entries such as `.plugin-state`
+so plugin state cannot appear as a user project.
+
+The Example screen renders `ready`, `empty`, and `unavailable` responses. A
+missing or inaccessible root is unavailable, and a readable root without
+projects is empty; neither condition prevents the plugin from loading.
+
 ## Start a plugin
 
 1. Update the package name, plugin code, and exported entry point for the new plugin.
