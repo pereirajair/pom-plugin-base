@@ -36,6 +36,15 @@ fn manifest_registers_both_full_bleed_screens() {
     let manifest = json("ui/manifest.json");
     assert_eq!(manifest["schema"], "pom-plugin-ui/v1");
     assert_eq!(manifest["plugin_code"], "base");
+    assert_eq!(manifest["icon_image"], "ui/icon.png");
+    assert_eq!(
+        manifest["documentation"],
+        serde_json::json!([
+            "docs/README.md",
+            "docs/guia-desenvolvimento.md",
+            "docs/guia-workspace.md"
+        ])
+    );
 
     let menu = manifest["menu"].as_array().expect("menu array");
     assert_eq!(menu.len(), 2);
@@ -94,12 +103,25 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
         BTreeSet::from([
             "ui/screens.js",
             "ui/plugin.css",
+            "ui/icon.png",
             "i18n/en.json",
             "i18n/pt-BR.json",
+            "docs/README.md",
+            "docs/guia-desenvolvimento.md",
+            "docs/guia-workspace.md",
         ])
     );
     assert!(root().join("ui/src/screens/index.tsx").is_file());
     assert!(root().join("ui/src/plugin.css").is_file());
+    let icon = fs::read(root().join("ui/icon.png")).expect("plugin icon");
+    assert!(icon.starts_with(b"\x89PNG\r\n\x1a\n"));
+    for path in [
+        "docs/README.md",
+        "docs/guia-desenvolvimento.md",
+        "docs/guia-workspace.md",
+    ] {
+        assert!(root().join(path).is_file(), "missing {path}");
+    }
     let screen_index = text("ui/src/screens/index.tsx");
     assert!(screen_index.contains("BasePlugin as base"));
     assert!(screen_index.contains("Example as example"));
@@ -123,13 +145,19 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
     }
     let catalog_keys: BTreeSet<_> = en.as_object().unwrap().keys().cloned().collect();
     assert_eq!(used, catalog_keys);
-    assert_eq!(en["example.body"], "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
-    assert_eq!(pt["example.body"], en["example.body"]);
+    assert_eq!(
+        en["example.body"],
+        "The POM provides this workspace. The base plugin reads only its immediate project directories."
+    );
+    assert_eq!(
+        pt["example.body"],
+        "O POM fornece este workspace. O plugin de base lê apenas os diretórios de projetos diretamente nele."
+    );
 
     let example = text("ui/src/screens/Example.tsx");
     assert_eq!(example.matches("t(\"example.body\")").count(), 1);
-    assert_eq!(example.matches("<p").count(), 1);
-    assert!(!example.contains("<h1") && !example.contains("<h2"));
+    assert_eq!(example.matches("<h1").count(), 1);
+    assert!(example.contains("<ul") && example.contains("<li"));
 }
 
 #[test]
@@ -180,6 +208,9 @@ fn plugin_styles_do_not_write_global_rules_and_get_plugin_scoped_names() {
     let build = text("ui/build.mjs");
     assert!(build.contains("namespacePluginCode"));
     assert!(build.contains("pluginCode"));
+    let native_build = text("build.rs");
+    assert!(native_build.contains("image/png"));
+    assert!(native_build.contains("text/markdown"));
 }
 
 #[test]
@@ -297,12 +328,31 @@ fn repository_text_avoids_unrelated_product_terms() {
 }
 
 #[test]
-fn example_screen_is_a_minimal_lorem_template() {
+fn example_screen_lists_projects_from_the_shared_workspace() {
     let source = text("ui/src/screens/Example.tsx");
     assert!(source.contains("export function Example"));
     assert!(source.contains("usePluginI18n"));
-    assert!(source.contains("t(\"example.body\")"));
+    assert!(source.contains("getPluginApi"));
+    assert!(source.contains("normalizeWorkspace"));
+    assert!(source.contains("projects.map"));
+    for key in [
+        "example.loading",
+        "example.unavailable",
+        "example.empty",
+        "example.body",
+    ] {
+        assert!(source.contains(&format!("t(\"{key}\")")), "missing {key}");
+    }
     assert_eq!(source.matches("<main").count(), 1);
-    assert_eq!(source.matches("<p").count(), 1);
-    assert!(!source.contains("<button") && !source.contains("<input"));
+    assert!(source.contains("<ul") && source.contains("<li"));
+    assert!(!source.contains("Lorem ipsum"));
+
+    let runtime = text("ui/src/host/runtime.ts");
+    assert!(runtime.contains("export function getPluginApi"));
+    assert!(runtime.contains("/api/ui/plugins/"));
+    assert!(runtime.contains("/proxy/"));
+
+    let css = text("ui/src/plugin.css");
+    assert!(css.contains(".pb-workspace-card"));
+    assert!(css.contains(".pb-project-list"));
 }

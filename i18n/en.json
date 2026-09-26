@@ -21,5 +21,10 @@
   "stepOne": "Implement the versioned entry point in src/lib.rs.",
   "stepTwo": "Map each route to a screen export in ui/manifest.json.",
   "stepThree": "Build and embed the UI assets and locale catalogs.",
-  "example.body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  "example.eyebrow": "Shared workspace",
+  "example.title": "Projects in your workspace",
+  "example.body": "The POM provides this workspace. The base plugin reads only its immediate project directories.",
+  "example.loading": "Looking for projects...",
+  "example.unavailable": "The shared workspace is not available right now.",
+  "example.empty": "No projects found in the shared workspace yet."
 }

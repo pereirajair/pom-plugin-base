@@ -7,6 +7,8 @@ fn content_type(name: &str) -> &'static str {
     {
         Some("js") => "text/javascript",
         Some("css") => "text/css",
+        Some("md") => "text/markdown",
+        Some("png") => "image/png",
         Some("json") => "application/json",
         _ => "application/octet-stream",
     }
@@ -18,7 +20,9 @@ fn main() {
 
     for (directory, prefix, extensions) in [
         ("ui/dist", "ui", &["js", "css"][..]),
+        ("ui", "ui", &["png"][..]),
         ("ui/dist/i18n", "i18n", &["json"][..]),
+        ("docs", "docs", &["md"][..]),
     ] {
         println!("cargo:rerun-if-changed={directory}");
         let Ok(files) = fs::read_dir(Path::new(&root).join(directory)) else {
@@ -52,4 +56,5 @@ fn main() {
     fs::write(output, generated).expect("write embedded asset index");
     println!("cargo:rerun-if-changed=ui/manifest.json");
     println!("cargo:rerun-if-changed=i18n");
+    println!("cargo:rerun-if-changed=docs");
 }
