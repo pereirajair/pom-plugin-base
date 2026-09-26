@@ -115,7 +115,10 @@ response_detail() {
   head -c 2048 "$response_file" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g'
 }
 
-# The upload protocol requires at least one feature identifier.
+# The upload protocol requires at least one feature identifier, and it rejects
+# any field it does not know: the typed preferences schema is validated above
+# but deliberately NOT sent, because /internal/releases/upload accepts no
+# preferences field and answers an opaque 400 for one.
 if http_status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
   -H "Authorization: Bearer ${POM_RELEASE_TOKEN}" \
   -F "plugin=${manifest_code}" \
@@ -126,7 +129,6 @@ if http_status="$(curl --silent --show-error --output "$response_file" --write-o
   -F "min_host_version=${min_host_version}" \
   -F "channel=${channel}" \
   -F "feature_set=${manifest_code}.core" \
-  -F "preferences=${preferences}" \
   -F "reason=${reason}" \
   -F "artifact=@${artifact}" \
   "$upload_url")"; then

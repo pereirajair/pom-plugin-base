@@ -18,7 +18,7 @@ printf '%s' 'sample plugin bytes' > "$artifact"
 sha256="$(shasum -a 256 "$artifact" | awk '{print $1}')"
 size="$(wc -c < "$artifact" | tr -d '[:space:]')"
 cat > "$metadata" <<JSON
-{"plugin_code":"base","version":"0.1.0","platform":"linux-x86_64","plugin_abi":1,"sha256":"$sha256","size":$size}
+{"plugin_code":"base","version":"0.1.0","platform":"linux-x86_64","plugin_abi":1,"sha256":"$sha256","size":$size,"preferences":{"features":[{"key":"example_toggle","label":"Example toggle","default":false}],"storage_directory":{"label":"Example storage","default":null}}}
 JSON
 
 cat > "$tmp_dir/bin/curl" <<'FAKE_CURL'
@@ -73,6 +73,10 @@ assert_contains "$curl_args" 'arch=x86_64'
 assert_contains "$curl_args" 'plugin_abi=1'
 assert_contains "$curl_args" 'feature_set=base.core'
 assert_contains "$curl_args" 'internal/releases/upload'
+# Regression: /internal/releases/upload rejects every field it does not know and
+# answers an opaque 400, so the typed preferences schema must stay out of the
+# upload even though the publisher validates it locally.
+[[ "$curl_args" != *preferences=* ]] || fail 'upload carried a preferences field the license server rejects'
 
 : > "$curl_log"
 if PATH="$tmp_dir/bin:$PATH" POM_TEST_CURL_LOG="$curl_log" POM_TEST_HTTP_STATUS=400 \
@@ -86,7 +90,7 @@ assert_contains "$(cat "$tmp_dir/http-error.txt")" 'HTTP 400'
 assert_contains "$(cat "$tmp_dir/http-error.txt")" 'plugin code is not registered'
 
 cat > "$metadata" <<JSON
-{"plugin_code":"base","version":"0.1.0","platform":"linux-x86_64","plugin_abi":1,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":$size}
+{"plugin_code":"base","version":"0.1.0","platform":"linux-x86_64","plugin_abi":1,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":$size,"preferences":{"features":[{"key":"example_toggle","label":"Example toggle","default":false}],"storage_directory":{"label":"Example storage","default":null}}}
 JSON
 : > "$curl_log"
 if PATH="$tmp_dir/bin:$PATH" POM_TEST_CURL_LOG="$curl_log" POM_RELEASE_TOKEN='test-token' \
@@ -98,10 +102,13 @@ assert_contains "$(cat "$tmp_dir/error.txt")" 'sha256 mismatch'
 [[ ! -s "$curl_log" ]] || fail 'invalid artifact was uploaded'
 
 renamed_root="$tmp_dir/renamed"
-mkdir -p "$renamed_root/scripts" "$renamed_root/ui"
+mkdir -p "$renamed_root/scripts" "$renamed_root/ui" "$renamed_root/release"
 cp "$root/scripts/package.sh" "$renamed_root/scripts/package.sh"
 cp "$root/scripts/publish-to-license-server.sh" "$renamed_root/scripts/publish-to-license-server.sh"
 sed 's/"plugin_code": "base"/"plugin_code": "my_plugin"/' "$root/ui/manifest.json" > "$renamed_root/ui/manifest.json"
+# package.sh reads the release contract too, and its plugin code and namespaced
+# feature set must follow the renamed plugin.
+jq '.plugin_code = "my_plugin" | .feature_set = ["my_plugin.core"]' "$root/release/manifest.json" > "$renamed_root/release/manifest.json"
 cat > "$renamed_root/scripts/build.sh" <<'FAKE_BUILD'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -142,5 +149,6 @@ assert_contains "$renamed_publish_output" 'release_id=my_plugin-0.0.3-linux-x86_
 renamed_curl_args="$(cat "$curl_log")"
 assert_contains "$renamed_curl_args" 'plugin=my_plugin'
 assert_contains "$renamed_curl_args" 'feature_set=my_plugin.core'
+[[ "$renamed_curl_args" != *preferences=* ]] || fail 'renamed upload carried a preferences field the license server rejects'
 
 printf 'test_license_publish: ok\n'
