@@ -21,5 +21,10 @@
   "stepOne": "Implemente a entrada versionada em src/lib.rs.",
   "stepTwo": "Associe cada rota a um export de tela em ui/manifest.json.",
   "stepThree": "Compile e embuta os assets da UI e os catálogos de idioma.",
-  "example.body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  "example.eyebrow": "Workspace compartilhado",
+  "example.title": "Projetos no seu workspace",
+  "example.body": "O POM fornece este workspace. O plugin de base lê apenas os diretórios de projetos diretamente nele.",
+  "example.loading": "Procurando projetos...",
+  "example.unavailable": "O workspace compartilhado não está disponível agora.",
+  "example.empty": "Nenhum projeto foi encontrado no workspace compartilhado ainda."
 }

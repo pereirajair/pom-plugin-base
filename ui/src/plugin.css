@@ -131,8 +131,40 @@
 .pb-steps li > span { color: var(--pb-accent); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .pb-steps p { color: var(--pb-fg); font-size: 12px; line-height: 1.55; }
 
-.pb-example { display: grid; min-height: 100%; place-items: center; padding: 32px; color: var(--fg, #202333); background: var(--surface, #fbfbfd); }
-.pb-example p { max-width: 640px; color: var(--muted, #73798c); font-size: 15px; line-height: 1.8; text-align: center; }
+.pb-example {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: clamp(20px, 5vw, 64px);
+  color: var(--fg, #202333);
+  background:
+    radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--iris, #6957d9) 8%, transparent), transparent 28rem),
+    var(--surface, #fbfbfd);
+}
+
+.pb-example * { box-sizing: border-box; }
+.pb-example h1,
+.pb-example p { margin: 0; }
+
+.pb-workspace-card {
+  width: min(100%, 720px);
+  padding: clamp(24px, 5vw, 44px);
+  border: 1px solid var(--line, #e4e6ed);
+  border-radius: 22px;
+  background: var(--surface, #fff);
+  box-shadow: 0 18px 48px -34px rgb(25 30 50 / .48);
+}
+
+.pb-workspace-heading .pb-overline { color: var(--iris, #6957d9); }
+.pb-workspace-heading h1 { margin-top: 10px; color: var(--fg, #202333); font-size: clamp(25px, 4vw, 34px); font-weight: 680; letter-spacing: -.035em; line-height: 1.12; }
+.pb-workspace-heading p { max-width: 570px; margin-top: 13px; color: var(--muted, #73798c); font-size: 14px; line-height: 1.65; }
+
+.pb-workspace-state { margin-top: 30px !important; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--iris, #6957d9) 22%, var(--line, #e4e6ed)); border-radius: 13px; color: var(--fg, #202333); background: color-mix(in srgb, var(--iris, #6957d9) 5%, var(--surface, #fff)); font-size: 13px; line-height: 1.55; }
+.pb-workspace-state-muted { color: var(--muted, #73798c); background: var(--raised, #f7f8fb); }
+
+.pb-project-list { display: grid; gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+.pb-project-list li { display: flex; min-height: 52px; align-items: center; gap: 12px; padding: 0 15px; border: 1px solid var(--line, #e4e6ed); border-radius: 13px; color: var(--fg, #202333); background: var(--raised, #f7f8fb); font-size: 14px; }
+.pb-project-marker { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: var(--iris, #6957d9); box-shadow: 0 0 0 4px color-mix(in srgb, var(--iris, #6957d9) 12%, transparent); }
 
 @media (max-width: 820px) {
   .pb-intro-symbol { width: 112px; flex-basis: 112px; margin-right: 0; }
