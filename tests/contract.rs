@@ -242,7 +242,7 @@ fn release_manifest_provides_typed_default_preference_examples() {
     assert!(!package.contains("del(.schema)"));
     assert!(package.contains(".preferences"));
     let publisher = text("scripts/publish-to-license-server.sh");
-    assert!(publisher.contains("-F \"preferences=${preferences}\""));
+    assert!(!publisher.contains("-F \"preferences=${preferences}\""));
 }
 
 #[test]
