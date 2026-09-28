@@ -59,8 +59,10 @@ Every event uses the same JSON envelope, whatever channel carries it:
 | `notification.notify` | `{title, body?, level?, scope?}` | `delivered` or `failed` |
 | `notification.confirm` | `{title, body?, acceptLabel?, cancelLabel?, tone?, display?}` | `accepted` or `cancelled` |
 
-`level` is `info`, `success`, `warning` or `error`. `scope: "local"` (default)
-shows a notice only in this interface; `scope: "network"` sends it to every
+`level` is `info`, `success`, `warning` or `error`. Every notice also lands in
+the POM notification bell as a message without buttons: it counts as unread
+until the user opens the bell, then it is marked read. `scope: "local"`
+(default) shows it only in this interface; `scope: "network"` sends it to every
 node through the authenticated network chat transport, where it is kept in
 memory for 24 hours and shown as a notice. The network chat must be enabled.
 `notification.confirm` puts an Accept or Reject entry in the POM notification
