@@ -58,42 +58,44 @@ function useWorkspace(): WorkspaceState {
   return state;
 }
 
-export function Example() {
+export function Projects() {
   const { t } = usePluginI18n();
   const workspace = useWorkspace();
-  const description = t("example.body");
+  const description = t("projects.body");
 
   return (
-    <main className="pb-example">
-      <section className="pb-workspace-card" aria-live="polite">
-        <header className="pb-workspace-heading">
-          <span className="pb-overline">{t("example.eyebrow")}</span>
-          <h1>{t("example.title")}</h1>
-          <p>{description}</p>
-        </header>
+    <main className="pb-page">
+      <section className="pb-hero pb-hero-compact" aria-live="polite">
+        <p className="pb-eyebrow pb-eyebrow-hero"><span className="pb-tick" aria-hidden="true" />{t("projects.eyebrow")}</p>
+        <h1 className="pb-hero-title">
+          <span>{t("projects.titleA")}</span>
+          <span className="pb-gradient-text">{t("projects.titleB")}</span>
+        </h1>
+        <p className="pb-hero-sub">{description}</p>
+      </section>
 
+      <section className="pb-section">
         {workspace.status === "loading" && (
-          <p className="pb-workspace-state" role="status">{t("example.loading")}</p>
+          <p className="pb-card pb-state" role="status">{t("projects.loading")}</p>
         )}
         {workspace.status === "unavailable" && (
-          <p className="pb-workspace-state pb-workspace-state-muted" role="status">
-            {t("example.unavailable")}
-          </p>
+          <p className="pb-card pb-state pb-muted" role="status">{t("projects.unavailable")}</p>
         )}
         {workspace.status === "empty" && (
-          <p className="pb-workspace-state pb-workspace-state-muted" role="status">
-            {t("example.empty")}
-          </p>
+          <p className="pb-card pb-state pb-muted" role="status">{t("projects.empty")}</p>
         )}
         {workspace.status === "ready" && (
-          <ul className="pb-project-list" aria-label={description}>
-            {workspace.projects.map((project) => (
-              <li key={project}>
-                <span className="pb-project-marker" aria-hidden="true" />
-                <span>{project}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />{t("projects.count", { count: workspace.projects.length })}</p>
+            <ul className="pb-project-list" aria-label={description}>
+              {workspace.projects.map((project) => (
+                <li key={project} className="pb-card pb-project">
+                  <span className="pb-project-mark" aria-hidden="true">{project.slice(0, 1).toUpperCase()}</span>
+                  <span className="pb-project-name">{project}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
     </main>

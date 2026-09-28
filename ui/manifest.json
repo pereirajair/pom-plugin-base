@@ -2,32 +2,50 @@
   "schema": "pom-plugin-ui/v1",
   "plugin_code": "base",
   "icon_image": "ui/icon.png",
+  "description": {
+    "en": "Tutorial plugin for the POM: shows how to build your own plugin and demonstrates every host feature - menus and submenus, screens, locales, the shared workspace, preferences, events, and notifications.",
+    "pt-BR": "Plugin tutorial do POM: mostra como criar o seu próprio plugin e demonstra cada recurso do host - menus e submenus, telas, idiomas, workspace compartilhado, preferências, eventos e notificações."
+  },
+  "screenshots": [
+    "docs/screenshots/tutorial.png",
+    "docs/screenshots/features.png",
+    "docs/screenshots/projects.png"
+  ],
   "documentation": [
     "docs/README.md",
     "docs/guia-desenvolvimento.md",
-    "docs/guia-workspace.md"
+    "docs/guia-workspace.md",
+    "docs/guia-eventos.md"
   ],
   "menu": [
     {
       "id": "base",
-      "label": { "en": "Base Plugin", "pt-BR": "Plugin de Base" },
-      "icon": "layout-template",
-      "to": "/plugin-de-base"
-    },
-    {
-      "id": "example",
-      "label": { "en": "Example", "pt-BR": "Exemplo" },
-      "icon": "file-code-2",
-      "to": "/example"
+      "label": { "en": "POM - Plugins", "pt-BR": "POM - Plugins" },
+      "icon": "blocks",
+      "to": "/plugin",
+      "children": [
+        {
+          "id": "plugin",
+          "label": { "en": "Plugin", "pt-BR": "Plugin" },
+          "icon": "book-open",
+          "to": "/plugin"
+        },
+        {
+          "id": "projects",
+          "label": { "en": "Projects", "pt-BR": "Projetos" },
+          "icon": "folder-tree",
+          "to": "/projetos"
+        }
+      ]
     }
   ],
   "routes": [
-    { "path": "/plugin-de-base", "screen": "base", "full_bleed": true, "roles": ["admin"] },
-    { "path": "/example", "screen": "example", "full_bleed": true }
+    { "path": "/plugin", "screen": "tutorial", "full_bleed": true },
+    { "path": "/projetos", "screen": "projects", "full_bleed": true }
   ],
   "screens": {
-    "base": { "module": "ui/screens.js", "export": "base", "styles": ["ui/plugin.css"] },
-    "example": { "module": "ui/screens.js", "export": "example", "styles": ["ui/plugin.css"] }
+    "tutorial": { "module": "ui/screens.js", "export": "tutorial", "styles": ["ui/plugin.css"] },
+    "projects": { "module": "ui/screens.js", "export": "projects", "styles": ["ui/plugin.css"] }
   },
   "i18n": {
     "en": "i18n/en.json",
@@ -41,6 +59,7 @@
     "i18n/pt-BR.json",
     "docs/README.md",
     "docs/guia-desenvolvimento.md",
-    "docs/guia-workspace.md"
+    "docs/guia-workspace.md",
+    "docs/guia-eventos.md"
   ]
 }

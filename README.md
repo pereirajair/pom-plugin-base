@@ -1,8 +1,11 @@
-# POM Plugin Base
+# POM - Plugins (plugin base)
 
-A small public starter for building plugins for the POM. It shows the host ABI boundary, automatic menu registration through `pom-plugin-ui/v1`, embedded React screens, locale catalogs, and repeatable build and packaging commands.
+The public starter and tutorial for building plugins for the POM. It shows the host ABI boundary, automatic menu registration with submenus through `pom-plugin-ui/v1`, embedded React screens in the pieceofmind.cloud visual identity, locale catalogs, the `pom-plugin-events/v1` events and notifications protocol, and repeatable build and packaging commands.
 
-The included **Plugin de Base** screen describes the scaffold. The **Example** screen demonstrates the shared workspace project list and is intended as a small screen to copy when starting a new view.
+The plugin appears in the POM sidebar as **POM - Plugins**, with the POM icon and two submenus:
+
+- **Plugin**: the tutorial. How to build a plugin in five steps, every feature a plugin can use, and a live demo that sends a notice to this user, a notice to the whole network, and an Accept or Cancel question whose answer comes back to the screen. It also shows the events received by the screen (language, theme) and by the native backend (`host.event`).
+- **Projects**: the shared workspace project list, a small screen to copy when starting a new view.
 
 ## Project layout
 
@@ -10,16 +13,18 @@ The included **Plugin de Base** screen describes the scaffold. The **Example** s
 Cargo.toml             Rust cdylib and dependencies
 src/lib.rs              Versioned plugin ABI and UI asset interface
 build.rs                Embeds built UI files and locale catalogs
-ui/manifest.json        Menu, route, screen, locale, and asset declarations
-ui/src/screens/          React screen components
-ui/src/plugin.css        Screen styles
-ui/icon.png              Optional plugin-owned menu image
+ui/manifest.json        Menu, submenu, route, screen, locale, description, screenshot, and asset declarations
+ui/src/host/runtime.ts   Host SDK helpers: i18n, plugin API, events and notifications
+ui/src/screens/          React screen components (Tutorial, Projects)
+ui/src/plugin.css        Screen styles (pieceofmind.cloud identity, light and dark)
+ui/icon.png              Plugin-owned menu image (the POM icon)
 docs/                    Guides shown in plugin documentation
+docs/screenshots/        Screenshots listed in the manifest, loaded by the POM from GitHub
 i18n/                    en and pt-BR catalogs
 scripts/                 UI, native build, and package commands
 ```
 
-The UI manifest sets `plugin_code` to `base`, registers `ui/icon.png` as the optional plugin-owned menu image, and lists the Markdown files under `docs/` for the POM documentation view. Menu entries point to routes declared in the same file. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
+The UI manifest sets `plugin_code` to `base`, registers `ui/icon.png` as the plugin-owned menu image, declares a localized `description` and the `screenshots` shown on the POM Plugins screen, and lists the Markdown files under `docs/` for the POM documentation view. The single menu item has `children`, so the POM draws a sidebar section with the **Plugin** and **Projects** submenus; the parent keeps `to` so hosts without submenu support still show one entry. Screenshots are paths relative to the repository root: the POM turns them into `raw.githubusercontent.com` URLs, so they are never embedded or sent through the license server. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
 
 Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it. The license publisher derives the release plugin name from the same manifest and sends the generic feature identifier `<plugin_code>.core`.
 
@@ -74,14 +79,18 @@ authenticated plugin proxy. The endpoint reads only immediate child
 directories, sorts their names, and omits hidden entries such as `.plugin-state`
 so plugin state cannot appear as a user project.
 
-The Example screen renders `ready`, `empty`, and `unavailable` responses. A
+The Projects screen renders `ready`, `empty`, and `unavailable` responses. A
 missing or inaccessible root is unavailable, and a readable root without
 projects is empty; neither condition prevents the plugin from loading.
+
+## Events and notifications
+
+The POM and the plugin exchange `pom-plugin-events/v1` envelopes (`protocol`, `id`, `type`, `target`, `source`, `at`, `payload`). The POM sends `locale.changed`, `theme.changed`, `preferences.changed`, `notification.received` and `notification.response` through the host SDK (`__POM_HOST__.plugin(code).events`), the `pom:plugin-event` DOM event, same-origin iframes marked with `data-pom-plugin`, and the native `host.event` query operation. The plugin sends `notification.notify` (to this user or, with `scope: "network"`, to every node) and `notification.confirm` (Accept or Cancel), and receives the answer as `notification.response`. `ui/src/host/runtime.ts` wraps it all in `usePomEvent`, `usePomContext`, `notify` and `confirm`. See [docs/guia-eventos.md](docs/guia-eventos.md).
 
 ## Start a plugin
 
 1. Update the package name, plugin code, and exported entry point for the new plugin.
-2. Add or adjust its menu item, route, screen export, icon image, and documentation paths in `ui/manifest.json`.
+2. Add or adjust its menu items and submenus, routes, screen exports, icon image, description, screenshots, and documentation paths in `ui/manifest.json`.
 3. Implement plugin behavior behind the versioned ABI in `src/lib.rs`.
 4. Add screen components under `ui/src/screens/`, guides under `docs/`, and keep the `en` and `pt-BR` catalogs aligned.
 5. Run the verification and build commands above before packaging.

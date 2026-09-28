@@ -32,7 +32,7 @@ fn contains_term(haystack: &[u8], pattern: &[u8]) -> bool {
 }
 
 #[test]
-fn manifest_registers_both_full_bleed_screens() {
+fn manifest_registers_the_tutorial_section_with_two_submenus() {
     let manifest = json("ui/manifest.json");
     assert_eq!(manifest["schema"], "pom-plugin-ui/v1");
     assert_eq!(manifest["plugin_code"], "base");
@@ -42,39 +42,37 @@ fn manifest_registers_both_full_bleed_screens() {
         serde_json::json!([
             "docs/README.md",
             "docs/guia-desenvolvimento.md",
-            "docs/guia-workspace.md"
+            "docs/guia-workspace.md",
+            "docs/guia-eventos.md"
         ])
     );
 
     let menu = manifest["menu"].as_array().expect("menu array");
-    assert_eq!(menu.len(), 2);
-    let base_menu = menu
+    assert_eq!(menu.len(), 1);
+    let section = &menu[0];
+    assert_eq!(section["id"], "base");
+    assert_eq!(section["label"]["en"], "POM - Plugins");
+    assert_eq!(section["label"]["pt-BR"], "POM - Plugins");
+    // Hosts without submenu support still get a valid destination.
+    assert_eq!(section["to"], "/plugin");
+    let children = section["children"].as_array().expect("submenus");
+    let ids: Vec<_> = children
         .iter()
-        .find(|entry| entry["id"] == "base")
-        .expect("base menu entry");
-    assert_eq!(base_menu["to"], "/plugin-de-base");
-    assert_eq!(base_menu["label"]["en"], "Base Plugin");
-    assert_eq!(base_menu["label"]["pt-BR"], "Plugin de Base");
-    let example_menu = menu
-        .iter()
-        .find(|entry| entry["id"] == "example")
-        .expect("example menu entry");
-    assert_eq!(example_menu["to"], "/example");
-    assert_eq!(example_menu["label"]["en"], "Example");
-    assert_eq!(example_menu["label"]["pt-BR"], "Exemplo");
+        .map(|child| child["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(ids, ["plugin", "projects"]);
+    assert_eq!(children[1]["label"]["pt-BR"], "Projetos");
 
     let routes = manifest["routes"].as_array().expect("routes array");
     assert_eq!(routes.len(), 2);
-    for (path, screen) in [("/plugin-de-base", "base"), ("/example", "example")] {
+    for (path, screen) in [("/plugin", "tutorial"), ("/projetos", "projects")] {
         let route = routes
             .iter()
             .find(|route| route["path"] == path)
             .expect("route");
         assert_eq!(route["screen"], screen);
         assert_eq!(route["full_bleed"], true);
-        if path == "/plugin-de-base" {
-            assert_eq!(route["roles"], serde_json::json!(["admin"]));
-        }
+        assert!(children.iter().any(|child| child["to"] == path));
         let descriptor = &manifest["screens"][screen];
         assert_eq!(descriptor["module"], "ui/screens.js");
         assert_eq!(descriptor["export"], screen);
@@ -83,6 +81,28 @@ fn manifest_registers_both_full_bleed_screens() {
             .unwrap()
             .iter()
             .any(|style| style == "ui/plugin.css"));
+    }
+}
+
+#[test]
+fn manifest_description_and_screenshots_live_in_the_repository() {
+    let manifest = json("ui/manifest.json");
+    for locale in ["en", "pt-BR"] {
+        let description = manifest["description"][locale]
+            .as_str()
+            .expect("description");
+        assert!(!description.trim().is_empty() && description.len() <= 2000);
+    }
+    let screenshots = manifest["screenshots"].as_array().expect("screenshots");
+    assert!(!screenshots.is_empty() && screenshots.len() <= 8);
+    let assets = manifest["assets"].as_array().unwrap();
+    for shot in screenshots {
+        let path = shot.as_str().unwrap();
+        // Loaded by the browser straight from GitHub, never embedded or served by the node.
+        assert!(path.starts_with("docs/screenshots/") && path.ends_with(".png"));
+        assert!(!assets.iter().any(|asset| asset == shot));
+        let bytes = fs::read(root().join(path)).unwrap_or_else(|error| panic!("{path}: {error}"));
+        assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"));
     }
 }
 
@@ -109,6 +129,7 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
             "docs/README.md",
             "docs/guia-desenvolvimento.md",
             "docs/guia-workspace.md",
+            "docs/guia-eventos.md",
         ])
     );
     assert!(root().join("ui/src/screens/index.tsx").is_file());
@@ -119,12 +140,13 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
         "docs/README.md",
         "docs/guia-desenvolvimento.md",
         "docs/guia-workspace.md",
+        "docs/guia-eventos.md",
     ] {
         assert!(root().join(path).is_file(), "missing {path}");
     }
     let screen_index = text("ui/src/screens/index.tsx");
-    assert!(screen_index.contains("BasePlugin as base"));
-    assert!(screen_index.contains("Example as example"));
+    assert!(screen_index.contains("Tutorial as tutorial"));
+    assert!(screen_index.contains("Projects as projects"));
 
     let en = json("i18n/en.json");
     let pt = json("i18n/pt-BR.json");
@@ -132,32 +154,56 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
         en.as_object().unwrap().keys().collect::<Vec<_>>(),
         pt.as_object().unwrap().keys().collect::<Vec<_>>()
     );
+    let catalog_keys: BTreeSet<_> = en.as_object().unwrap().keys().cloned().collect();
     let mut used = BTreeSet::new();
-    for path in [
-        "ui/src/screens/BasePlugin.tsx",
-        "ui/src/screens/Example.tsx",
-    ] {
+    for path in ["ui/src/screens/Tutorial.tsx", "ui/src/screens/Projects.tsx"] {
         let source = text(path);
-        for rest in source.split("t(\"").skip(1) {
+        // `t("key"` only when `t` is a whole identifier, not the end of
+        // `usePomEvent("...` or similar calls.
+        for (index, _) in source.match_indices("t(\"") {
+            let before = source[..index].chars().next_back();
+            if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            let rest = &source[index + 3..];
             let key = rest.split_once('\"').expect("translation key").0;
             used.insert(key.to_owned());
         }
     }
-    let catalog_keys: BTreeSet<_> = en.as_object().unwrap().keys().cloned().collect();
+    // Keys built from the step, feature and response lists of the tutorial.
+    for step in ["one", "two", "three", "four", "five"] {
+        for field in ["title", "body", "file"] {
+            used.insert(format!("steps.{step}.{field}"));
+        }
+    }
+    for feature in [
+        "menu",
+        "screens",
+        "locales",
+        "workspace",
+        "preferences",
+        "events",
+        "notifications",
+        "store",
+    ] {
+        used.insert(format!("features.{feature}.title"));
+        used.insert(format!("features.{feature}.body"));
+    }
+    for action in ["delivered", "failed", "accepted", "cancelled"] {
+        used.insert(format!("demo.response.{action}"));
+    }
+    for theme in ["light", "dark"] {
+        used.insert(format!("theme.{theme}"));
+    }
     assert_eq!(used, catalog_keys);
     assert_eq!(
-        en["example.body"],
-        "The POM provides this workspace. The base plugin reads only its immediate project directories."
+        en["projects.body"],
+        "The POM provides this workspace. POM - Plugins reads only its immediate project directories."
     );
     assert_eq!(
-        pt["example.body"],
-        "O POM fornece este workspace. O plugin de base lê apenas os diretórios de projetos diretamente nele."
+        pt["projects.body"],
+        "O POM fornece este workspace. O POM - Plugins lê apenas os diretórios de projetos diretamente nele."
     );
-
-    let example = text("ui/src/screens/Example.tsx");
-    assert_eq!(example.matches("t(\"example.body\")").count(), 1);
-    assert_eq!(example.matches("<h1").count(), 1);
-    assert!(example.contains("<ul") && example.contains("<li"));
 }
 
 #[test]
@@ -169,8 +215,8 @@ fn i18n_namespace_comes_from_manifest_plugin_code() {
     let english_keys = en.as_object().expect("English catalog");
     let portuguese_keys = pt.as_object().expect("Portuguese catalog");
 
-    assert!(english_keys.contains_key("title"));
-    assert!(english_keys.contains_key("example.body"));
+    assert!(english_keys.contains_key("hero.titleA"));
+    assert!(english_keys.contains_key("projects.body"));
     assert!(!english_keys.keys().any(|key| key.starts_with("base.")));
     assert_eq!(
         english_keys.keys().collect::<Vec<_>>(),
@@ -183,22 +229,46 @@ fn i18n_namespace_comes_from_manifest_plugin_code() {
     assert!(build.contains("manifest.plugin_code"));
     assert!(build.contains("namespaceLocaleCatalog"));
 
-    let renamed_code = "my_plugin";
-    let derived_keys: BTreeSet<_> = english_keys
-        .keys()
-        .map(|key| format!("{renamed_code}.{key}"))
-        .collect();
-    assert!(derived_keys.contains("my_plugin.title"));
-    assert!(derived_keys.contains("my_plugin.example.body"));
-
     let generated = root().join("ui/dist/i18n/en.json");
     if generated.exists() {
         let generated: Value = serde_json::from_slice(&fs::read(generated).unwrap()).unwrap();
-        assert!(generated.get(format!("{plugin_code}.title")).is_some());
         assert!(generated
-            .get(format!("{plugin_code}.example.body"))
+            .get(format!("{plugin_code}.hero.titleA"))
+            .is_some());
+        assert!(generated
+            .get(format!("{plugin_code}.projects.body"))
             .is_some());
     }
+}
+
+#[test]
+fn runtime_speaks_the_pom_plugin_events_protocol() {
+    let runtime = text("ui/src/host/runtime.ts");
+    assert!(runtime.contains("\"pom-plugin-events/v1\""));
+    for export in [
+        "export function onPomEvent",
+        "export function usePomEvent",
+        "export function usePomContext",
+        "export function notify",
+        "export function confirm",
+    ] {
+        assert!(runtime.contains(export), "missing {export}");
+    }
+    // Hosts without the v2 SDK are still reached through the DOM channel.
+    assert!(runtime.contains("\"pom:plugin-event\""));
+    assert!(runtime.contains("\"pom:plugin-request\""));
+    let tutorial = text("ui/src/screens/Tutorial.tsx");
+    for call in [
+        "notify({",
+        "confirm({",
+        "scope: \"network\"",
+        "usePomEvent(\"*\"",
+    ] {
+        assert!(tutorial.contains(call), "tutorial misses {call}");
+    }
+    let native = text("src/lib.rs");
+    assert!(native.contains("\"host.event\""));
+    assert!(native.contains("path == \"/events\""));
 }
 
 #[test]
@@ -241,8 +311,10 @@ fn release_manifest_provides_typed_default_preference_examples() {
     );
     assert!(!package.contains("del(.schema)"));
     assert!(package.contains(".preferences"));
+    // The upload endpoint rejects a `preferences` field: the schema is
+    // validated locally and never sent to the license server.
     let publisher = text("scripts/publish-to-license-server.sh");
-    assert!(!publisher.contains("-F \"preferences=${preferences}\""));
+    assert!(!publisher.contains("-F \"preferences="));
 }
 
 #[test]
@@ -328,24 +400,24 @@ fn repository_text_avoids_unrelated_product_terms() {
 }
 
 #[test]
-fn example_screen_lists_projects_from_the_shared_workspace() {
-    let source = text("ui/src/screens/Example.tsx");
-    assert!(source.contains("export function Example"));
+fn projects_screen_lists_projects_from_the_shared_workspace() {
+    let source = text("ui/src/screens/Projects.tsx");
+    assert!(source.contains("export function Projects"));
     assert!(source.contains("usePluginI18n"));
     assert!(source.contains("getPluginApi"));
     assert!(source.contains("normalizeWorkspace"));
     assert!(source.contains("projects.map"));
     for key in [
-        "example.loading",
-        "example.unavailable",
-        "example.empty",
-        "example.body",
+        "projects.loading",
+        "projects.unavailable",
+        "projects.empty",
+        "projects.body",
     ] {
         assert!(source.contains(&format!("t(\"{key}\")")), "missing {key}");
     }
     assert_eq!(source.matches("<main").count(), 1);
+    assert_eq!(source.matches("<h1").count(), 1);
     assert!(source.contains("<ul") && source.contains("<li"));
-    assert!(!source.contains("Lorem ipsum"));
 
     let runtime = text("ui/src/host/runtime.ts");
     assert!(runtime.contains("export function getPluginApi"));
@@ -353,6 +425,6 @@ fn example_screen_lists_projects_from_the_shared_workspace() {
     assert!(runtime.contains("/proxy/"));
 
     let css = text("ui/src/plugin.css");
-    assert!(css.contains(".pb-workspace-card"));
     assert!(css.contains(".pb-project-list"));
+    assert!(css.contains("html[data-theme=\"light\"] .pb-page"));
 }

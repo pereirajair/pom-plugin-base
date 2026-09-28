@@ -1,6 +1,7 @@
 //! Minimal POM plugin boundary with an embedded UI contract.
 
 use serde_json::{json, Value};
+use std::collections::VecDeque;
 use std::ffi::{c_char, c_void};
 use std::fs;
 use std::io::{Read, Write};
@@ -16,6 +17,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 const ABI_VERSION: u32 = 1;
 static VERSION: &[u8] = b"0.1.0\0";
 const UI_MANIFEST: &str = include_str!("../ui/manifest.json");
+/// Protocol of the events the POM delivers through the `host.event` operation.
+const EVENTS_PROTOCOL: &str = "pom-plugin-events/v1";
+/// How many received host events the tutorial keeps to show on screen.
+const MAX_HOST_EVENTS: usize = 20;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -61,7 +66,41 @@ unsafe impl Sync for PluginApiV1 {}
 
 struct PluginState {
     workspace: Arc<WorkspaceState>,
+    events: Arc<HostEvents>,
     upstream: Option<WorkspaceServer>,
+}
+
+/// Recent `pom-plugin-events/v1` envelopes received through `host.event`.
+#[derive(Default)]
+struct HostEvents {
+    received: RwLock<VecDeque<Value>>,
+}
+
+impl HostEvents {
+    fn record(&self, request: &Value) -> Result<Value, String> {
+        let event = request.get("event").ok_or("host.event has no event")?;
+        if event.get("protocol").and_then(Value::as_str) != Some(EVENTS_PROTOCOL) {
+            return Err("unsupported events protocol".into());
+        }
+        if event.get("type").and_then(Value::as_str).is_none() {
+            return Err("event type is missing".into());
+        }
+        let mut received = self
+            .received
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        received.push_front(event.clone());
+        received.truncate(MAX_HOST_EVENTS);
+        Ok(json!({"status": "ok"}))
+    }
+
+    fn snapshot(&self) -> Value {
+        let received = self
+            .received
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        json!({"protocol": EVENTS_PROTOCOL, "events": received.iter().cloned().collect::<Vec<_>>()})
+    }
 }
 
 struct WorkspaceState {
@@ -106,7 +145,7 @@ struct WorkspaceServer {
 }
 
 impl WorkspaceServer {
-    fn start(workspace: Arc<WorkspaceState>) -> Result<Self, String> {
+    fn start(workspace: Arc<WorkspaceState>, events: Arc<HostEvents>) -> Result<Self, String> {
         let listener = TcpListener::bind(("127.0.0.1", 0)).map_err(|error| error.to_string())?;
         listener
             .set_nonblocking(true)
@@ -121,7 +160,7 @@ impl WorkspaceServer {
         let thread_token = token.clone();
         let thread = thread::Builder::new()
             .name("pom-plugin-base-workspace".into())
-            .spawn(move || serve_workspace(listener, workspace, thread_token, thread_stop))
+            .spawn(move || serve_workspace(listener, workspace, events, thread_token, thread_stop))
             .map_err(|error| error.to_string())?;
         Ok(Self {
             port,
@@ -155,12 +194,13 @@ fn upstream_token(port: u16) -> String {
 fn serve_workspace(
     listener: TcpListener,
     workspace: Arc<WorkspaceState>,
+    events: Arc<HostEvents>,
     token: String,
     stop: Arc<AtomicBool>,
 ) {
     while !stop.load(Ordering::Acquire) {
         match listener.accept() {
-            Ok((stream, _)) => handle_workspace_request(stream, &workspace, &token),
+            Ok((stream, _)) => handle_workspace_request(stream, &workspace, &events, &token),
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 thread::sleep(Duration::from_millis(10));
             }
@@ -169,7 +209,12 @@ fn serve_workspace(
     }
 }
 
-fn handle_workspace_request(mut stream: TcpStream, workspace: &WorkspaceState, token: &str) {
+fn handle_workspace_request(
+    mut stream: TcpStream,
+    workspace: &WorkspaceState,
+    events: &HostEvents,
+    token: &str,
+) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
     let mut request = Vec::new();
     let mut chunk = [0_u8; 1024];
@@ -207,6 +252,8 @@ fn handle_workspace_request(mut stream: TcpStream, workspace: &WorkspaceState, t
         );
     } else if method == "GET" && path == "/projects" {
         write_json_response(&mut stream, "200 OK", &workspace_snapshot(workspace));
+    } else if method == "GET" && path == "/events" {
+        write_json_response(&mut stream, "200 OK", &events.snapshot());
     } else {
         write_json_response(&mut stream, "404 Not Found", &json!({"error": "not found"}));
     }
@@ -263,9 +310,11 @@ fn workspace_snapshot(state: &WorkspaceState) -> Value {
 impl PluginState {
     fn new() -> Self {
         let workspace = Arc::new(WorkspaceState::default());
-        let upstream = WorkspaceServer::start(Arc::clone(&workspace)).ok();
+        let events = Arc::new(HostEvents::default());
+        let upstream = WorkspaceServer::start(Arc::clone(&workspace), Arc::clone(&events)).ok();
         Self {
             workspace,
+            events,
             upstream,
         }
     }
@@ -322,6 +371,7 @@ fn query_inner(state: &PluginState, request: &[u8]) -> Result<Value, String> {
     let request: Value = serde_json::from_slice(request).map_err(|error| error.to_string())?;
     match request["operation"].as_str().unwrap_or_default() {
         "host.configure" => configure_workspace(&state.workspace, &request),
+        "host.event" => state.events.record(&request),
         "workspace.projects" => Ok(workspace_snapshot(&state.workspace)),
         "ui.upstream" => state
             .upstream
@@ -500,6 +550,43 @@ mod tests {
 
         assert!(error.contains("workspace_root"));
         assert_eq!(state.root(), None);
+    }
+
+    #[test]
+    fn host_event_keeps_recent_protocol_envelopes_only() {
+        let events = HostEvents::default();
+        let envelope = |id: usize| {
+            json!({
+                "operation": "host.event",
+                "event": {
+                    "protocol": EVENTS_PROTOCOL,
+                    "id": format!("event-{id}"),
+                    "type": "preferences.changed",
+                    "target": "base",
+                    "source": "pom",
+                    "at": "2026-09-28T00:00:00Z",
+                    "payload": {"preferences": {"features": {}}}
+                }
+            })
+        };
+        assert_eq!(
+            events.record(&envelope(0)).unwrap(),
+            json!({"status": "ok"})
+        );
+        assert!(events
+            .record(
+                &json!({"operation": "host.event", "event": {"protocol": "other", "type": "x"}})
+            )
+            .is_err());
+        assert!(events.record(&json!({"operation": "host.event"})).is_err());
+        for id in 1..=MAX_HOST_EVENTS {
+            events.record(&envelope(id)).unwrap();
+        }
+        let snapshot = events.snapshot();
+        let received = snapshot["events"].as_array().unwrap();
+        assert_eq!(received.len(), MAX_HOST_EVENTS);
+        assert_eq!(received[0]["id"], format!("event-{MAX_HOST_EVENTS}"));
+        assert_eq!(snapshot["protocol"], EVENTS_PROTOCOL);
     }
 
     #[test]

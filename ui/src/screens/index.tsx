@@ -1,2 +1,2 @@
-export { BasePlugin as base } from "./BasePlugin";
-export { Example as example } from "./Example";
+export { Tutorial as tutorial } from "./Tutorial";
+export { Projects as projects } from "./Projects";
