@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
+import { useReveal } from "./reveal";
 import {
   assetUrl,
   confirm,
@@ -25,6 +26,9 @@ const FEATURES = [
   { key: "store", icon: "08" },
 ] as const;
 const MAX_EVENTS = 12;
+
+/** Stagger index for the reveal animations (`--i` in plugin.css). */
+const order = (index: number) => ({ "--i": index }) as CSSProperties;
 
 const SNIPPET = `import { confirm, notify, usePomEvent } from "./host/runtime";
 
@@ -58,6 +62,7 @@ export function Tutorial() {
   const [lastResponse, setLastResponse] = useState<NotificationResponse | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [backend, setBackend] = useState<BackendEvents>({ status: "idle", events: [] });
+  const revealRef = useReveal<HTMLElement>();
 
   usePomEvent("*", (event) => {
     setEvents((current) => [event, ...current.filter((item) => item.id !== event.id)].slice(0, MAX_EVENTS));
@@ -86,8 +91,8 @@ export function Tutorial() {
   const responseLabel = lastResponse ? t(`demo.response.${lastResponse.action}`) : null;
 
   return (
-    <main className="pb-page">
-      <section className="pb-hero pb-hero-split">
+    <main className="pb-page" ref={revealRef}>
+      <section className="pb-hero pb-hero-split pb-hero-lit">
         <img className="pb-hero-mark" src={assetUrl("ui/pom-mark-dark.png")} alt="" aria-hidden="true" />
         <p className="pb-eyebrow pb-eyebrow-hero"><span className="pb-tick" aria-hidden="true" />{t("hero.eyebrow")}</p>
         <h1 className="pb-hero-title">
@@ -104,11 +109,11 @@ export function Tutorial() {
       </section>
 
       <section className="pb-section" aria-labelledby="pb-steps-title">
-        <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />01 / {t("steps.label")}</p>
-        <h2 id="pb-steps-title" className="pb-h2">{t("steps.title")}</h2>
-        <ol className="pb-steps">
+        <p className="pb-eyebrow pb-reveal"><span className="pb-tick" aria-hidden="true" />01 / {t("steps.label")}</p>
+        <h2 id="pb-steps-title" className="pb-h2 pb-reveal">{t("steps.title")}</h2>
+        <ol className="pb-steps pb-reveal">
           {STEPS.map((step, index) => (
-            <li key={step} className="pb-step">
+            <li key={step} className="pb-step pb-reveal" style={order(index)}>
               <span className="pb-step-num" aria-hidden="true">{index + 1}</span>
               <div>
                 <h3 className="pb-h3">{t(`steps.${step}.title`)}</h3>
@@ -121,11 +126,11 @@ export function Tutorial() {
       </section>
 
       <section className="pb-section" aria-labelledby="pb-features-title">
-        <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />02 / {t("features.label")}</p>
-        <h2 id="pb-features-title" className="pb-h2">{t("features.title")}</h2>
+        <p className="pb-eyebrow pb-reveal"><span className="pb-tick" aria-hidden="true" />02 / {t("features.label")}</p>
+        <h2 id="pb-features-title" className="pb-h2 pb-reveal">{t("features.title")}</h2>
         <div className="pb-grid">
-          {FEATURES.map((feature) => (
-            <article key={feature.key} className="pb-card">
+          {FEATURES.map((feature, index) => (
+            <article key={feature.key} className="pb-card pb-card-feature pb-reveal" style={order(index % 4)}>
               <p className="pb-card-num">{feature.icon}</p>
               <h3 className="pb-h3">{t(`features.${feature.key}.title`)}</h3>
               <p>{t(`features.${feature.key}.body`)}</p>
@@ -135,11 +140,11 @@ export function Tutorial() {
       </section>
 
       <section className="pb-section" aria-labelledby="pb-demo-title">
-        <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />03 / {t("demo.label")}</p>
-        <h2 id="pb-demo-title" className="pb-h2">{t("demo.title")}</h2>
-        <p className="pb-lede">{t("demo.body")}</p>
+        <p className="pb-eyebrow pb-reveal"><span className="pb-tick" aria-hidden="true" />03 / {t("demo.label")}</p>
+        <h2 id="pb-demo-title" className="pb-h2 pb-reveal">{t("demo.title")}</h2>
+        <p className="pb-lede pb-reveal">{t("demo.body")}</p>
         <div className="pb-demo">
-          <article className="pb-card pb-card-accent">
+          <article className="pb-card pb-card-accent pb-reveal" style={order(0)}>
             <h3 className="pb-h3">{t("demo.actionsTitle")}</h3>
             <div className="pb-btn-row">
               <button
@@ -190,7 +195,7 @@ export function Tutorial() {
               <span className="pb-response-label">{t("demo.responseLabel")}</span>
               {lastResponse ? (
                 <>
-                  <strong className={`pb-response-value pb-response-${lastResponse.action}`}>{responseLabel}</strong>
+                  <strong key={lastResponse.request_id} className={`pb-response-value pb-response-${lastResponse.action}`}>{responseLabel}</strong>
                   <code className="pb-path">{lastResponse.request_id.slice(0, 12)}</code>
                   {lastResponse.error && <span className="pb-muted">{lastResponse.error}</span>}
                 </>
@@ -200,7 +205,7 @@ export function Tutorial() {
             </div>
           </article>
 
-          <article className="pb-card">
+          <article className="pb-card pb-reveal" style={order(1)}>
             <h3 className="pb-h3">{t("demo.eventsTitle")}</h3>
             <p className="pb-muted">{t("demo.eventsHint")}</p>
             {events.length === 0 ? (
@@ -218,7 +223,7 @@ export function Tutorial() {
             )}
           </article>
 
-          <article className="pb-card">
+          <article className="pb-card pb-reveal" style={order(2)}>
             <div className="pb-card-head">
               <h3 className="pb-h3">{t("demo.backendTitle")}</h3>
               <button type="button" className="pb-btn pb-btn-outline pb-btn-small" onClick={() => void loadBackendEvents()}>
@@ -244,9 +249,9 @@ export function Tutorial() {
       </section>
 
       <section className="pb-section" aria-labelledby="pb-code-title">
-        <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />04 / {t("code.label")}</p>
-        <h2 id="pb-code-title" className="pb-h2">{t("code.title")}</h2>
-        <div className="pb-code-card">
+        <p className="pb-eyebrow pb-reveal"><span className="pb-tick" aria-hidden="true" />04 / {t("code.label")}</p>
+        <h2 id="pb-code-title" className="pb-h2 pb-reveal">{t("code.title")}</h2>
+        <div className="pb-code-card pb-reveal">
           <p className="pb-code-label">ui/src/screens/Tutorial.tsx</p>
           <pre className="pb-code"><code>{SNIPPET}</code></pre>
         </div>

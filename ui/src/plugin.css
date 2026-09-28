@@ -120,6 +120,7 @@ html[data-theme="light"] .pb-page {
 }
 .pb-hero::before {
   content: ""; position: absolute; inset: -30% -10% auto -10%; height: 130%; z-index: -1; pointer-events: none;
+  animation: pb-glow 18s ease-in-out infinite alternate;
   background:
     radial-gradient(52% 60% at 50% 8%, rgba(79, 155, 255, .30), transparent 68%),
     radial-gradient(44% 52% at 82% 40%, rgba(47, 220, 200, .22), transparent 70%),
@@ -138,6 +139,7 @@ html[data-theme="light"] .pb-page {
   position: absolute; top: 50%; right: clamp(24px, 4vw, 64px); width: clamp(220px, 28vw, 380px); height: auto;
   transform: translateY(-50%);
   filter: drop-shadow(0 24px 60px rgba(47, 220, 200, .22));
+  animation: pb-mark-in 1.1s cubic-bezier(.22, 1, .36, 1) .35s both, pb-float 7s ease-in-out 1.5s infinite;
 }
 .pb-hero-sub { max-width: 62ch; color: var(--pb-panel-ink-2); font-size: clamp(14.5px, 1.5vw, 16.5px); }
 .pb-hero-compact .pb-hero-title { font-size: clamp(26px, 4vw, 42px); }
@@ -266,6 +268,7 @@ html[data-theme="light"] .pb-page {
   position: absolute; top: 50%; right: clamp(24px, 4vw, 64px); width: clamp(220px, 28vw, 380px); height: auto;
   transform: translateY(-50%);
   filter: drop-shadow(0 24px 60px rgba(47, 220, 200, .22));
+  animation: pb-mark-in 1.1s cubic-bezier(.22, 1, .36, 1) .35s both, pb-float 7s ease-in-out 1.5s infinite;
 }
 }
 
@@ -276,7 +279,84 @@ html[data-theme="light"] .pb-page {
   .pb-event-summary { grid-column: 1 / -1; grid-row: 2; }
 }
 
+/* ------------------------------- motion ------------------------------- */
+/* The hero lights up in order, like the website's hero (`.hero-lit`). */
+.pb-hero-lit > * { animation: pb-rise .8s cubic-bezier(.22, 1, .36, 1) both; }
+.pb-hero-lit > :nth-child(1) { animation-delay: .05s; }
+.pb-hero-lit > :nth-child(2) { animation-delay: .15s; }
+.pb-hero-lit > :nth-child(3) { animation-delay: .27s; }
+.pb-hero-lit > :nth-child(4) { animation-delay: .39s; }
+.pb-hero-lit > :nth-child(5) { animation-delay: .51s; }
+.pb-hero-lit > .pb-hero-mark { animation: pb-mark-in 1.1s cubic-bezier(.22, 1, .36, 1) .35s both, pb-float 7s ease-in-out 1.5s infinite; }
+.pb-hero-lit .pb-tick { animation: pb-tick .9s cubic-bezier(.22, 1, .36, 1) .3s both; transform-origin: left center; }
+
+/* A live chip gets a small breathing dot. */
+.pb-chips li:first-child strong::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; border-radius: 50%;
+  background: #2fdcc8; box-shadow: 0 0 0 0 rgba(47, 220, 200, .5);
+  animation: pb-live 2.4s ease-out infinite;
+}
+
+/* Reveal on scroll (`reveal.ts` adds .pb-in). */
+.pb-reveal {
+  opacity: 0; transform: translateY(18px);
+  transition: opacity .7s cubic-bezier(.22, 1, .36, 1), transform .7s cubic-bezier(.22, 1, .36, 1), border-color .18s ease;
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+.pb-reveal.pb-in { opacity: 1; transform: none; }
+.pb-card.pb-reveal.pb-in:hover { transform: translateY(-3px); }
+
+/* The steps rule draws itself, and each number lights up as its step arrives. */
+.pb-steps.pb-reveal { opacity: 1; transform: none; }
+.pb-steps::before { transform: scaleY(0); transform-origin: top; transition: transform 1.4s cubic-bezier(.22, 1, .36, 1) .1s; }
+.pb-steps.pb-in::before { transform: scaleY(1); }
+.pb-step.pb-in .pb-step-num { animation: pb-pop .6s cubic-bezier(.34, 1.56, .64, 1) calc(var(--i, 0) * 80ms + .15s) both; }
+
+/* Feature cards: a brand-gradient edge follows the hover. */
+.pb-card-feature { position: relative; }
+.pb-card-feature::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, var(--pb-blue), var(--pb-teal));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity .25s ease;
+}
+.pb-card-feature:hover::after { opacity: 1; }
+.pb-card-feature:hover .pb-card-num { letter-spacing: .32em; }
+.pb-card-num { transition: letter-spacing .3s ease; }
+
+/* The accent button carries a light sweep. */
+.pb-btn-accent { position: relative; overflow: hidden; }
+.pb-btn-accent::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: pb-sweep 3.6s ease-in-out 1.2s infinite;
+}
+
+/* New events slide in; a new answer pops. */
+.pb-event-list li { animation: pb-slide .45s cubic-bezier(.22, 1, .36, 1) both; }
+.pb-response-value { display: inline-block; animation: pb-pop .5s cubic-bezier(.34, 1.56, .64, 1) both; }
+
+/* Projects arrive in a cascade (delay set per item). */
+.pb-project { animation: pb-rise .6s cubic-bezier(.22, 1, .36, 1) both; }
+.pb-project:hover .pb-project-mark { transform: rotate(-8deg) scale(1.08); }
+.pb-project-mark { transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+
+@keyframes pb-rise { from { opacity: 0; transform: translateY(16px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes pb-mark-in { from { opacity: 0; transform: translateY(-50%) translateX(24px) scale(.94); } to { opacity: 1; transform: translateY(-50%); } }
+@keyframes pb-float { 0%, 100% { transform: translateY(-50%); } 50% { transform: translateY(calc(-50% - 10px)); } }
+@keyframes pb-glow { from { transform: translate3d(-3%, 0, 0) rotate(-2deg); opacity: .85; } to { transform: translate3d(4%, 3%, 0) rotate(3deg); opacity: 1; } }
+@keyframes pb-tick { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes pb-live { 0% { box-shadow: 0 0 0 0 rgba(47, 220, 200, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(47, 220, 200, 0); } }
+@keyframes pb-pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes pb-sweep { 0% { transform: translateX(-120%); } 45%, 100% { transform: translateX(120%); } }
+@keyframes pb-slide { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .pb-card, .pb-btn { transition: none; }
   .pb-card:hover, .pb-btn:hover { transform: none; }
+  .pb-reveal { opacity: 1; transform: none; transition: none; }
+  .pb-steps::before { transform: none; transition: none; }
+  .pb-page *, .pb-page *::before, .pb-page *::after { animation: none !important; }
 }

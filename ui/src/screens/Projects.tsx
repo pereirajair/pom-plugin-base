@@ -65,7 +65,7 @@ export function Projects() {
 
   return (
     <main className="pb-page">
-      <section className="pb-hero pb-hero-compact" aria-live="polite">
+      <section className="pb-hero pb-hero-compact pb-hero-lit" aria-live="polite">
         <p className="pb-eyebrow pb-eyebrow-hero"><span className="pb-tick" aria-hidden="true" />{t("projects.eyebrow")}</p>
         <h1 className="pb-hero-title">
           <span>{t("projects.titleA")}</span>
@@ -88,8 +88,8 @@ export function Projects() {
           <>
             <p className="pb-eyebrow"><span className="pb-tick" aria-hidden="true" />{t("projects.count", { count: workspace.projects.length })}</p>
             <ul className="pb-project-list" aria-label={description}>
-              {workspace.projects.map((project) => (
-                <li key={project} className="pb-card pb-project">
+              {workspace.projects.map((project, index) => (
+                <li key={project} className="pb-card pb-project" style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}>
                   <span className="pb-project-mark" aria-hidden="true">{project.slice(0, 1).toUpperCase()}</span>
                   <span className="pb-project-name">{project}</span>
                 </li>
