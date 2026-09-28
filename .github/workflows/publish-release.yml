@@ -95,6 +95,8 @@ jobs:
             dist-release/pom-plugin-base-${{ matrix.platform }}.metadata.json
             dist-release/pom-plugin-${{ matrix.platform }}.json
           if-no-files-found: error
+          # Os pacotes só passam entre as etapas; a release guarda os definitivos.
+          retention-days: 1
 
   release:
     name: Release ${{ matrix.name }} ${{ matrix.version }}
