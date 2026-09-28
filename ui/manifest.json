@@ -20,19 +20,28 @@
   "menu": [
     {
       "id": "base",
-      "label": { "en": "POM - Plugins", "pt-BR": "POM - Plugins" },
+      "label": {
+        "en": "POM - Plugins",
+        "pt-BR": "POM - Plugins"
+      },
       "icon": "blocks",
       "to": "/plugin",
       "children": [
         {
           "id": "plugin",
-          "label": { "en": "Plugin", "pt-BR": "Plugin" },
+          "label": {
+            "en": "Plugin",
+            "pt-BR": "Plugin"
+          },
           "icon": "book-open",
           "to": "/plugin"
         },
         {
           "id": "projects",
-          "label": { "en": "Projects", "pt-BR": "Projetos" },
+          "label": {
+            "en": "Projects",
+            "pt-BR": "Projetos"
+          },
           "icon": "folder-tree",
           "to": "/projetos"
         }
@@ -40,12 +49,32 @@
     }
   ],
   "routes": [
-    { "path": "/plugin", "screen": "tutorial", "full_bleed": true },
-    { "path": "/projetos", "screen": "projects", "full_bleed": true }
+    {
+      "path": "/plugin",
+      "screen": "tutorial",
+      "full_bleed": true
+    },
+    {
+      "path": "/projetos",
+      "screen": "projects",
+      "full_bleed": true
+    }
   ],
   "screens": {
-    "tutorial": { "module": "ui/screens.js", "export": "tutorial", "styles": ["ui/plugin.css"] },
-    "projects": { "module": "ui/screens.js", "export": "projects", "styles": ["ui/plugin.css"] }
+    "tutorial": {
+      "module": "ui/screens.js",
+      "export": "tutorial",
+      "styles": [
+        "ui/plugin.css"
+      ]
+    },
+    "projects": {
+      "module": "ui/screens.js",
+      "export": "projects",
+      "styles": [
+        "ui/plugin.css"
+      ]
+    }
   },
   "i18n": {
     "en": "i18n/en.json",
@@ -55,6 +84,7 @@
     "ui/screens.js",
     "ui/plugin.css",
     "ui/icon.png",
+    "ui/pom-mark-dark.png",
     "i18n/en.json",
     "i18n/pt-BR.json",
     "docs/README.md",

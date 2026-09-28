@@ -26,7 +26,7 @@ scripts/                 UI, native build, and package commands
 
 The UI manifest sets `plugin_code` to `base`, registers `ui/icon.png` as the plugin-owned menu image, declares a localized `description` and the `screenshots` shown on the POM Plugins screen, and lists the Markdown files under `docs/` for the POM documentation view. The single menu item has `children`, so the POM draws a sidebar section with the **Plugin** and **Projects** submenus; the parent keeps `to` so hosts without submenu support still show one entry. Screenshots are paths relative to the repository root: the POM turns them into `raw.githubusercontent.com` URLs, so they are never embedded or sent through the license server. The exported C entry point is `pom_base_plugin_v1`. Release metadata lives separately in `release/manifest.json`: it declares the namespaced `base.core` capability and example local preferences, one boolean feature toggle and one storage directory. The UI manifest remains the `pom-plugin-ui/v1` contract and does not carry license or release preferences.
 
-Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it. The license publisher derives the release plugin name from the same manifest and sends the generic feature identifier `<plugin_code>.core`.
+Locale source keys stay plugin-neutral; the UI build prefixes them with the current `plugin_code` for the POM translation catalog. The same build scopes CSS class names and matching screen markup to that code. When cloning the scaffold, change `plugin_code` in `ui/manifest.json` and the generated identifiers follow it.
 
 ## Build and verify
 
@@ -54,11 +54,11 @@ Both build commands accept `--output <dir>`. By default, artifacts go to `dist-r
 
 ## GitHub release workflow
 
-The manual `Publish plugin release` workflow builds selected platforms, attaches the packages and metadata to GitHub releases, and publishes stable releases to the license server. Prereleases go to GitHub only. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release. Each platform package also generates `pom-plugin-<os>-<arch>.json`, the public GitHub update manifest consumed by POM. Its SHA-256 and byte size describe the adjacent native asset; keep both assets attached to the release. The packaging metadata declares the typed `preferences` schema and `scripts/publish-to-license-server.sh` validates it locally, but does not send it to the license server: the upload endpoint accepts no `preferences` field and rejects the whole publication when one is present. The preference values themselves are always stored by POM locally and are not license data.
+POM - Plugins is a public plugin: it is installed from its GitHub releases (POM, Plugins, Add from GitHub) and never goes through the license server.
 
-Before running a stable release, configure the repository secret `POM_RELEASE_TOKEN` with a token accepted by the license server. The workflow uses the server's default endpoint; optionally set the `POM_RELEASE_API` repository secret to override it. The publish script verifies the package metadata, ABI, version, platform, size, and SHA-256 before uploading. The upload protocol requires a non-empty namespaced feature set, so this generic scaffold sends `base.core`. A prerelease is the safe way to exercise the build and GitHub release steps without contacting the license server.
+The manual `Publish plugin release` workflow builds the selected platforms and attaches the packages to a GitHub release; `prerelease` only marks the GitHub release. Each selected platform can use its own `vX.Y.Z` tag; choose the same tag when publishing assets for one multi-platform release. Each platform package also generates `pom-plugin-<os>-<arch>.json`, the public GitHub update manifest consumed by POM, with the typed `preferences` schema, the `feature_set` and the SHA-256 and byte size of the adjacent native asset; keep both assets attached to the release. The preference values themselves are always stored by POM locally. No repository secret is needed.
 
-The workflow and its plan/publish helpers are in `.github/workflows/publish-release.yml` and `scripts/`.
+The workflow and its plan helper are in `.github/workflows/publish-release.yml` and `scripts/`.
 
 ## Shared workspace contract
 
@@ -85,7 +85,7 @@ projects is empty; neither condition prevents the plugin from loading.
 
 ## Events and notifications
 
-The POM and the plugin exchange `pom-plugin-events/v1` envelopes (`protocol`, `id`, `type`, `target`, `source`, `at`, `payload`). The POM sends `locale.changed`, `theme.changed`, `preferences.changed`, `notification.received` and `notification.response` through the host SDK (`__POM_HOST__.plugin(code).events`), the `pom:plugin-event` DOM event, same-origin iframes marked with `data-pom-plugin`, and the native `host.event` query operation. The plugin sends `notification.notify` (to this user or, with `scope: "network"`, to every node) and `notification.confirm` (Accept or Cancel), and receives the answer as `notification.response`. `ui/src/host/runtime.ts` wraps it all in `usePomEvent`, `usePomContext`, `notify` and `confirm`. See [docs/guia-eventos.md](docs/guia-eventos.md).
+The POM and the plugin exchange `pom-plugin-events/v1` envelopes (`protocol`, `id`, `type`, `target`, `source`, `at`, `payload`). The POM sends `locale.changed`, `theme.changed`, `preferences.changed`, `deployment.started`, `model.serving`, `model.stopped`, `notification.received` and `notification.response` through the host SDK (`__POM_HOST__.plugin(code).events`), the `pom:plugin-event` DOM event, same-origin iframes marked with `data-pom-plugin`, and the native `host.event` query operation. The plugin sends `notification.notify` (to this user or, with `scope: "network"`, to every node) and `notification.confirm` (Accept or Reject in the POM notification bell, or `display: "dialog"` for a modal), and receives the answer as `notification.response`. `ui/src/host/runtime.ts` wraps it all in `usePomEvent`, `usePomContext`, `notify` and `confirm`. See [docs/guia-eventos.md](docs/guia-eventos.md).
 
 ## Start a plugin
 

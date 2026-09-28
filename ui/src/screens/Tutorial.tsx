@@ -47,6 +47,7 @@ function eventSummary(event: PomEvent): string {
   if (typeof payload.theme === "string") return payload.theme;
   if (typeof payload.action === "string") return `${payload.kind ?? ""} ${payload.action}`.trim();
   if (typeof payload.title === "string") return payload.title;
+  if (typeof payload.model === "string") return payload.model;
   return event.target;
 }
 
@@ -87,7 +88,7 @@ export function Tutorial() {
   return (
     <main className="pb-page">
       <section className="pb-hero pb-hero-split">
-        <img className="pb-hero-mark" src={assetUrl("ui/icon.png")} alt="" aria-hidden="true" />
+        <img className="pb-hero-mark" src={assetUrl("ui/pom-mark-dark.png")} alt="" aria-hidden="true" />
         <p className="pb-eyebrow pb-eyebrow-hero"><span className="pb-tick" aria-hidden="true" />{t("hero.eyebrow")}</p>
         <h1 className="pb-hero-title">
           <span>{t("hero.titleA")}</span>
@@ -169,6 +170,20 @@ export function Tutorial() {
                 }))}
               >
                 {t("demo.askConfirm")}
+              </button>
+              <button
+                type="button"
+                className="pb-btn pb-btn-outline"
+                disabled={busy !== null}
+                onClick={() => void run("dialog", () => confirm({
+                  title: t("demo.confirmTitle"),
+                  body: t("demo.confirmBody"),
+                  acceptLabel: t("demo.confirmAccept"),
+                  cancelLabel: t("demo.confirmCancel"),
+                  display: "dialog",
+                }))}
+              >
+                {t("demo.askDialog")}
               </button>
             </div>
             <div className="pb-response" role="status" aria-live="polite">

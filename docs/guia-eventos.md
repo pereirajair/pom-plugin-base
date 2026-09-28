@@ -26,6 +26,9 @@ Every event uses the same JSON envelope, whatever channel carries it:
 | `preferences.changed` | `{preferences}` | the preferences of this plugin are saved |
 | `notification.received` | `{message_id, plugin_code, title, body, level, sender_node_id, sent_at}` | a plugin notice arrives from the network |
 | `notification.response` | `{request_id, kind, action, error?}` | answer to a command of this plugin |
+| `deployment.started` | `{kind, deploy_id, job_id, model, nodes, deployment_name?, reused?, version?}` | a deployment (`kind: "deploy"`) or redeployment (`"redeploy"`) starts |
+| `model.serving` | `{model, deploy_ids, node_ids}` | a model starts being served by the network (it appears in `/v1/models`) |
+| `model.stopped` | `{model}` | a model stops being served |
 
 ## Channels
 
@@ -41,21 +44,28 @@ Every event uses the same JSON envelope, whatever channel carries it:
 - **Native backend**: the POM calls `query` with
   `{"operation": "host.event", "event": <envelope>}`. A plugin that does not
   know the operation answers an error, which the POM ignores, exactly as with
-  `host.configure`. This plugin keeps the last events and serves them on
-  `GET /events` through the plugin proxy.
+  `host.configure`. The node sends `preferences.changed`,
+  `deployment.started`, `model.serving` and `model.stopped` this way, so the
+  backend learns about them even with no screen open. This plugin keeps the
+  last events and serves them on `GET /events` through the plugin proxy.
+  The POM interface reads the same node events from
+  `GET /api/ui/plugins/events?after=<seq>` and repeats them on the browser
+  channels.
 
 ## Commands a plugin sends
 
 | Command | Payload | Result |
 |---|---|---|
 | `notification.notify` | `{title, body?, level?, scope?}` | `delivered` or `failed` |
-| `notification.confirm` | `{title, body?, acceptLabel?, cancelLabel?, tone?}` | `accepted` or `cancelled` |
+| `notification.confirm` | `{title, body?, acceptLabel?, cancelLabel?, tone?, display?}` | `accepted` or `cancelled` |
 
 `level` is `info`, `success`, `warning` or `error`. `scope: "local"` (default)
 shows a notice only in this interface; `scope: "network"` sends it to every
 node through the authenticated network chat transport, where it is kept in
 memory for 24 hours and shown as a notice. The network chat must be enabled.
-`notification.confirm` opens an Accept or Cancel dialog for the current user.
+`notification.confirm` puts an Accept or Reject entry in the POM notification
+bell of the current user, the same way a file transfer offer waits there;
+`display: "dialog"` opens a modal dialog instead.
 
 With the SDK, `__POM_HOST__.plugin(code).notifications.notify(...)` and
 `.confirm(...)` return a promise with the response. Without it, fire

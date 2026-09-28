@@ -14,7 +14,10 @@ export type PomEventType =
   | "theme.changed"
   | "preferences.changed"
   | "notification.received"
-  | "notification.response";
+  | "notification.response"
+  | "deployment.started"
+  | "model.serving"
+  | "model.stopped";
 
 export type PomEvent<P = Record<string, unknown>> = {
   protocol: typeof EVENTS_PROTOCOL;
@@ -39,6 +42,8 @@ export type ConfirmRequest = {
   acceptLabel?: string;
   cancelLabel?: string;
   tone?: "primary" | "danger";
+  /** `notification` (default): in the POM notification bell. `dialog`: a modal now. */
+  display?: "notification" | "dialog";
 };
 
 export type NotificationResponse = {

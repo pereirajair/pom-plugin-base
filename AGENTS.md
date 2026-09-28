@@ -5,7 +5,7 @@
 - `ui/src/host/runtime.ts` is the only place that touches `__POM_HOST__`; it implements the `pom-plugin-events/v1` helpers with a DOM-channel fallback. `docs/guia-eventos.md` documents the protocol; the native side answers `host.event` in `src/lib.rs`.
 - The contract test forbids some unrelated product words anywhere in the repository (`repository_text_avoids_unrelated_product_terms`); keep new copy clear of them.
 - `scripts/build-ui.sh` generates ignored files under `ui/dist/` before native packaging.
-- The manual release workflow and its optional license-server publication are defined in `.github/workflows/publish-release.yml` and documented in `README.md`. `release/manifest.json` is the release/capability contract and example local preference schema; `ui/manifest.json` is only the `pom-plugin-ui/v1` screen contract. `scripts/package.sh` emits per-platform GitHub manifests from the release contract.
+- The manual release workflow in `.github/workflows/publish-release.yml` publishes to GitHub releases only; this is a public plugin and never talks to the license server. `release/manifest.json` is the release/capability contract and example local preference schema; `ui/manifest.json` is only the `pom-plugin-ui/v1` screen contract. `scripts/package.sh` emits per-platform GitHub manifests from the release contract.
 - Use `cargo test` and `cargo fmt --check` for the Rust and static contract checks.
 
 ## Maintaining this file

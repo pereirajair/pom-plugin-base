@@ -20,12 +20,10 @@ workflow="$root/.github/workflows/publish-release.yml"
 [[ -f "$workflow" ]] || fail 'workflow is missing'
 [[ "$(find "$root/.github/workflows" -maxdepth 1 -name '*.yml' | wc -l | tr -d ' ')" == 1 ]] || fail 'expected one workflow'
 grep -q '^name: Publish plugin release$' "$workflow" || fail 'workflow name'
-grep -q 'if: \${{ !inputs.prerelease }}' "$workflow" || fail 'stable releases must publish'
-grep -q 'secrets.POM_RELEASE_TOKEN' "$workflow" || fail 'token secret is missing'
-grep -q 'secrets.POM_RELEASE_API' "$workflow" || fail 'endpoint secret is missing'
-grep -q 'gh release download' "$workflow" || fail 'published release assets should be downloaded before upload'
-grep -q 'GH_TOKEN: \${{ github.token }}' "$workflow" || fail 'release download token is missing'
-grep -q 'ARTIFACT: dist-release/' "$workflow" || fail 'packaged asset path is missing'
+# POM - Plugins is public: releases live only on GitHub, never on the license server.
+grep -q 'license-server\|POM_RELEASE_TOKEN\|POM_RELEASE_API' "$workflow" && fail 'workflow must not publish to the license server'
+grep -q 'softprops/action-gh-release' "$workflow" || fail 'GitHub release step is missing'
+grep -q 'pom-plugin-\${{ matrix.platform }}.json' "$workflow" || fail 'public update manifest must be attached'
 grep -q 'max-parallel: 1' "$workflow" || fail 'same-tag releases must be serialized'
 grep -q 'persist-credentials: false' "$workflow" || fail 'checkout token should not persist'
 

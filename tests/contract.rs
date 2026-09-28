@@ -124,6 +124,7 @@ fn catalogs_assets_and_screen_text_keys_are_complete() {
             "ui/screens.js",
             "ui/plugin.css",
             "ui/icon.png",
+            "ui/pom-mark-dark.png",
             "i18n/en.json",
             "i18n/pt-BR.json",
             "docs/README.md",
@@ -311,10 +312,10 @@ fn release_manifest_provides_typed_default_preference_examples() {
     );
     assert!(!package.contains("del(.schema)"));
     assert!(package.contains(".preferences"));
-    // The upload endpoint rejects a `preferences` field: the schema is
-    // validated locally and never sent to the license server.
-    let publisher = text("scripts/publish-to-license-server.sh");
-    assert!(!publisher.contains("-F \"preferences="));
+    // A public plugin: releases go to GitHub only.
+    assert!(!root().join("scripts/publish-to-license-server.sh").exists());
+    let workflow = text(".github/workflows/publish-release.yml");
+    assert!(!workflow.contains("license-server") && !workflow.contains("POM_RELEASE_TOKEN"));
 }
 
 #[test]
@@ -335,7 +336,6 @@ fn generic_build_and_project_files_are_present() {
         "scripts/build-ui.sh",
         "scripts/ci-plan.sh",
         "scripts/package.sh",
-        "scripts/publish-to-license-server.sh",
         "release/manifest.json",
         ".github/workflows/publish-release.yml",
     ] {
